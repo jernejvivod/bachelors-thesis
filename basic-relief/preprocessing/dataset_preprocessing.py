@@ -1,7 +1,6 @@
 import numpy as np
 import gzip
-import pdb
-
+import types
 
 def get_tidy_data(filename):
     with gzip.open(filename, 'rt') as csvfile:
@@ -14,4 +13,8 @@ def get_tidy_data(filename):
             for i, val in enumerate(features[:, k]):
                 if val == '?':
                     features[i, k] = str(avg_val)
-        return features.astype(float), target.astype(int)
+
+        mpg = types.SimpleNamespace()
+        mpg.data = features.astype(float)
+        mpg.target = target.astype(int)
+        return mpg
