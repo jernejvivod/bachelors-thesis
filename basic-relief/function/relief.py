@@ -65,3 +65,15 @@ xor = SimpleNamespace()
 xor.data = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 0]])
 xor.target = np.array([0, 0, 1, 1, 1, 1, 0, 0])
 w2 = relief(xor.data, xor.target, 8, manhattan_dist)
+
+
+# A test using a dataset of pictures of cats and dogs
+import scipy.io as sio
+CatDog = sio.loadmat('CatDog.mat')['CatDog']
+target = np.hstack((np.repeat(1, 80), np.repeat(0, 80)))
+euclidean_dist = partial(dist_meas.minkowski_distance, p=2)
+w3 = relief(CatDog, target, CatDog.shape[0], euclidean_dist)
+
+from matplotlib import pyplot as plt
+plt.imshow(np.reshape(CatDog[0,:], (64, 64)).T, interpolation='nearest')
+plt.show()
