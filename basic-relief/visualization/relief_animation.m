@@ -1,4 +1,4 @@
-function [weights] = relief_animation(data, m, dist_func)
+function [weights] = relief_animation(data, m, dist_func, use_deletions)
 	% Create an animation of the basic Relief feature selection algorithm
 	% using three dimensional feature space.
 	%
@@ -31,24 +31,31 @@ function [weights] = relief_animation(data, m, dist_func)
 
 	
 	% Create scatter plot of data
-	
-	
+	figure(1); hold on;
+	scatter3(data(:, 1), data(:, 2), data(:, 3), 30, categorical(data(:, 4)), 'filled');
+	xlabel('a'); ylabel('b'); zlabel('c'); view(30, 50); grid on;
+	pause on
 	
 	for idx = idx_sampled
 		
 		% Display current weight values.
+		hT = title({'Relief Algorithm Visualization', sprintf('$$ weights = [%.3f, %.3f, %.3f] $$', weights(1), weights(2), weights(3))},'interpreter','latex');
+		set(hT, 'FontSize', 17);
+		
 		
 		e = data(idx, :);  % Get example that was sampled.
 		
 		
 		% Mark selected example.
+		sample_p = plot3(e(1), e(2), e(3), 'ro', 'MarkerSize', 10);
+		pause(0.3);
 		
 		
 		
 		% Get index of sampled example in subset of examples with same class.
 		data_class_aux = data(1:idx-1, end); idx_class = idx - sum(data_class_aux ~= e(end));  
 		
-		% Find nearest example from same class (H) and nearest example from different class (M).
+		% Find nearest example from same class (H) and nearest example from differensample_pt class (M).
 		distances_same = dist_func(repmat(e(1:end-1), sum(data(:, end) == e(end)), 1), data(data(:, end) == e(end), 1:end-1));
 		distances_diff = dist_func(repmat(e(1:end-1), sum(data(:, end) ~= e(end)), 1), data(data(:, end) ~= e(end), 1:end-1));
 		distances_same(idx_class) = inf;
@@ -64,8 +71,14 @@ function [weights] = relief_animation(data, m, dist_func)
 		
 		% Plot distances to H and M using different coloured lines and
 		% display distances on screen.
+		line_closest_same = plot3([e(1), closest_same(1)], [e(2), closest_same(2)], [e(3), closest_same(3)], 'g-', 'LineWidth', 4);
+		pause(0.3);
+		line_closest_diff = plot3([e(1), closest_diff(1)], [e(2), closest_diff(2)], [e(3), closest_diff(3)], 'r-', 'LineWidth', 4);
+		pause(0.35);
 		
-		% Display message: 'Scoring features'.
+		if use_deletions
+			delete(sample_p); delete(line_closest_same); delete(line_closest_diff);
+		end
 		
 		% Go over features
 		for k = 1:size(data, 2)-1
