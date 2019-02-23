@@ -16,7 +16,6 @@ def reliefF(X, y, **kwargs):
     kwargs: {dictionary}
         parameters of reliefF:
         k: {int}
-            choices for the number of neighbors (default k = 5)
 
     Output
     ------

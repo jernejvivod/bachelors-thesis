@@ -1,7 +1,7 @@
 function [] = create_animation()
 	% function [] = create_animation()
 	%
-	% Display animation for the basic Relief algorithm
+	% Display animation for the basic Relief algorithm.
 	% Called with no arguments. Animation properties are set in the
 	% function body.
 	
