@@ -1,6 +1,7 @@
 import numpy as np
 from random import randrange
 from sklearn.metrics.pairwise import pairwise_distances
+import pdb
 
 
 def reliefF(X, y, **kwargs):
@@ -34,9 +35,10 @@ def reliefF(X, y, **kwargs):
         k = kwargs["k"]
     n_samples, n_features = X.shape
 
-    # calculate pairwise distances between instances
+    # calculate pairwise distances between instances - matrix of distances between examples.
     distance = pairwise_distances(X, metric='manhattan')
 
+    # Allocate vector for scores
     score = np.zeros(n_features)
 
     # the number of sampled instances is equal to the number of total instances
@@ -89,10 +91,10 @@ def reliefF(X, y, **kwargs):
             if stop:
                 break
 
-        # update reliefF score
-        near_hit_term = np.zeros(n_features)
-        for ele in near_hit:
-            near_hit_term = np.array(abs(self_fea-X[ele, :]))+np.array(near_hit_term)
+        # ---------------- update reliefF score ---------------------
+        near_hit_term = np.zeros(n_features)  # penalty
+        for ele in near_hit:                  # Go over indices of nearest examples from same class
+            near_hit_term = np.array(abs(self_fea-X[ele, :])) + np.array(near_hit_term)  # Compute next term in sum.
 
         near_miss_term = dict()
         for (label, miss_list) in near_miss.items():
@@ -101,6 +103,8 @@ def reliefF(X, y, **kwargs):
                 near_miss_term[label] = np.array(abs(self_fea-X[ele, :]))+np.array(near_miss_term[label])
             score += near_miss_term[label]/(k*p_dict[label])
         score -= near_hit_term/k
+        # -----------------------------------------------------------
+
     return score
 
 

@@ -1,5 +1,5 @@
-function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_deletions)
-	% function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_deletions)
+function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use_deletions)
+	% function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use_deletions)
 	%
 	% Create an animation of the ReliefF feature selection algorithm
 	% using three dimensional feature space.
@@ -10,34 +10,41 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 	% dist_func --- distance function for evaluating distance between
 	% examples. The function should be able to take two matrices of
 	% examples and return a vector of distances between the examples.
+	% plot --- if set to 0, the function only computes the weights with no
+	% plotting.
+	% timeout --- duration of pause between graphical object plotting function calls.
 	% use_deletions --- logical value that specifies whether to delete the
 	% computation visualization when moving onto next example in the
 	% sample.
+	%
+	% Author: Jernej Vivod
 	
-	% Use deletions and default timeout if corresponding parameter not specified.
-	if nargin < 5
+	
+	% Set parameter values if not present in call.
+	if nargin < 7
 		use_deletions = 1;
-		timeout = 0.3;
-	end
-
-	% diff: score distance between two examples
-	function [res] = diff(idx_feature, e1, e2, max_f_val, min_f_val)
-		% if feature continuous
-		% TODO continuous? optional argument.
-		if 1
-			res = abs(e1(:, idx_feature) - e2(:, idx_feature))./(max_f_val - min_f_val);
-		else  % if feature discrete
-			if e1(idx_feature) == e2(idx_feature); res = 0; else; res = 1; end
+		if nargin < 6
+			timeout = 0.3;
+			if nargin < 5
+				plot = 0;
+			end
 		end
 	end
+	
+	
+	
+	% ### PLOTTING ###
+	if plot
+		% Create scatter plot of data
+		figure(1); hold on;
+		scatter3(data(:, 1), data(:, 2), data(:, 3), 30, categorical(data(:, end)), 'filled');
+		xlabel('a'); ylabel('b'); zlabel('c'); view(30, 50); grid on;
+		pause on
+	end
+	% ### /PLOTTING ###
 
-	% Create scatter plot of data
-	figure(1); hold on;
-	scatter3(data(:, 1), data(:, 2), data(:, 3), 30, categorical(data(:, 4)), 'filled');
-	xlabel('a'); ylabel('b'); zlabel('c'); view(30, 50); grid on;
-	pause on
-
-
+	
+	
 	weights = zeros(1, size(data, 2) - 1);  % Initialize weights.
 	idx_sampled = randsample(1:size(data, 1), m); % Get index of elements in sample.
 	
@@ -52,10 +59,14 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 	% Go over examples in sample.
 	for idx = idx_sampled
 		
+		
+		
 		% ### PLOTTING ###
-		% Display current weight values.
-		hT = title({'ReliefF Algorithm Visualization', sprintf('$$ weights = [%.3f, %.3f, %.3f] $$', weights(1), weights(2), weights(3))},'interpreter','latex');
-		set(hT, 'FontSize', 17);
+		if plot
+			% Display current weight values.
+			hT = title({'ReliefF Algorithm Visualization', sprintf('$$ weights = [%.3f, %.3f, %.3f] $$', weights(1), weights(2), weights(3))},'interpreter','latex');
+			set(hT, 'FontSize', 17);
+		end
 		% ### /PLOTTING ###
 		
 		
@@ -66,9 +77,11 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 		
 		
 		% ### PLOTTING ###
-		% Mark selected example.
-		sample_p = plot3(e(1), e(2), e(3), 'ro', 'MarkerSize', 10);
-		pause(timeout);
+		if plot
+			% Mark selected example.
+			sample_p = plot3(e(1), e(2), e(3), 'ro', 'MarkerSize', 10);
+			pause(timeout);
+		end
 		% ### /PLOTTING ###
 		
 		
@@ -83,15 +96,9 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 		data_same_aux = data(data(:, end) == e(end), :);
 		closest_same = data_same_aux(idxs_closest_same, :);
 		
-		
-		% ### TODO ###
-		% Can remove leading class column as order follows the classes
-		% vector.
-		
 		% Allocate matrix template for getting nearest examples from other
 		% classes.
-		classes_vect = repmat(classes(classes ~= e(end)), 1, k)'; classes_vect = classes_vect(:);
-		closest_other = [classes_vect, zeros(k * (length(classes) - 1), size(data, 2))];
+		closest_other = zeros(k * (length(classes) - 1), size(data, 2));
 		top_ptr = 1;  % Initialize pointer for adding examples to template matrix.
 		for cl = classes'  % Go over classes different than the one of current sampled example.
 			if cl ~= e(end)
@@ -100,7 +107,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 				[~, idx_closest_cl] = mink(distances_cl, k);
 				% Add found closest examples to matrix.
 				data_cl_aux = data(data(:, end) == cl, :);
-				closest_other(top_ptr:top_ptr+k-1, 2:end) = data_cl_aux(idx_closest_cl, :);
+				closest_other(top_ptr:top_ptr+k-1, 1:end) = data_cl_aux(idx_closest_cl, :);
 				top_ptr = top_ptr + k;
 			end
 		end
@@ -108,29 +115,30 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 		
 		
 		% ### PLOTTING ###
-		% Plot distances to closest examples from same class and closest examples from other classes.
-		line_ctr = 1;
-		lines_closest_same = cell(1, k);
-		for closest_same_nxt = closest_same(:, 1:end-1)'
-			lines_closest_same{line_ctr} = plot3([e(1), closest_same_nxt(1)], [e(2), closest_same_nxt(2)], [e(3), closest_same_nxt(3)], 'g-', 'LineWidth', 4);
+		if plot
+			% Plot distances to closest examples from same class and closest examples from other classes.
+			line_ctr = 1;
+			lines_closest_same = cell(1, k);
+			for closest_same_nxt = closest_same(:, 1:end-1)'
+				lines_closest_same{line_ctr} = plot3([e(1), closest_same_nxt(1)], [e(2), closest_same_nxt(2)], [e(3), closest_same_nxt(3)], 'g-', 'LineWidth', 4);
+				pause(timeout);
+				line_ctr = line_ctr + 1;
+			end
 			pause(timeout);
-			line_ctr = line_ctr + 1;
-		end
-		pause(timeout);
-		
-		line_ctr = 1;
-		lines_closest_other = cell(1, k);
-		for closest_other_nxt = closest_other(:, 2:end-1)'
-			lines_closest_other{line_ctr} = plot3([e(1), closest_other_nxt(1)], [e(2), closest_other_nxt(2)], [e(3), closest_other_nxt(3)], 'r-', 'LineWidth', 4);
-			pause(timeout);
-			line_ctr = line_ctr + 1;
-		end
-		
-		if use_deletions
-			delete(sample_p); cellfun(@delete, lines_closest_same); cellfun(@delete, lines_closest_other);
+
+			line_ctr = 1;
+			lines_closest_other = cell(1, k);
+			for closest_other_nxt = closest_other(:, 1:end-1)'
+				lines_closest_other{line_ctr} = plot3([e(1), closest_other_nxt(1)], [e(2), closest_other_nxt(2)], [e(3), closest_other_nxt(3)], 'r-', 'LineWidth', 4);
+				pause(timeout);
+				line_ctr = line_ctr + 1;
+			end
+
+			if use_deletions
+				delete(sample_p); cellfun(@delete, lines_closest_same); cellfun(@delete, lines_closest_other);
+			end
 		end
 		% ### /PLOTTING ###
-		
 		
 		
 		
@@ -138,16 +146,22 @@ function [weights] = relieff_animation(data, m, k, dist_func, timeout, use_delet
 		p_classes_other = p_classes(p_classes(:, 1) ~= e(end), 2);
 		
 		% Compute diff sum weights for closest examples from different class.
-		weights1 = p_classes_other./(1 - p_classes(p_classes(:, 1) == e(end), 2));
+		p_weights = p_classes_other./(1 - p_classes(p_classes(:, 1) == e(end), 2));
 		
+		
+		
+		% ***************** FEATURE WEIGHTS UPDATE *****************
 		% Go over features.
 		for t = 1:size(data, 2) - 1
-			% Update feature weights.
-			sum1 = sum(diff(t, repmat(e(1:end-1), k, 1), closest_same(:, 1:end-1), max_f_vals(t), min_f_vals(t))./(m*k));
-			sum2 = movsum(diff(t, repmat(e(1:end-1), k*(length(classes)-1), 1), closest_other(:, 2:end-1), max_f_vals(t), min_f_vals(t)), k);
-			sum2 = sum2(2:k:end);
-			sum3 = sum(weights1 .* sum2)./(m*k);
-			weights(t) = weights(t) - sum1 + sum3;
+			% Penalty term
+			penalty = sum(abs(e(t) - closest_same(:, t))/(max_f_vals(t) - min_f_vals(t)));
+			aux_sum = movsum(abs(e(t) - closest_other(:, t))/(max_f_vals(t) - min_f_vals(t)), k);
+			aux_sum = aux_sum(2:k:end);
+			% Reward term
+			reward = sum(p_weights .* aux_sum);
+			weights(t) = weights(t) - penalty/(m*k) + reward/(m*k);
 		end
+		% **********************************************************
+		
 	end
 end
