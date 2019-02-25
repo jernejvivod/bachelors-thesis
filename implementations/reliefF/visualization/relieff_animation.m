@@ -90,7 +90,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 		data_class_aux = data(1:idx-1, end); idx_class = idx - sum(data_class_aux ~= e(end));
 		
 		% Find k nearest examples from same class.
-		distances_same = dist_func(repmat(e(1:end-1), sum(data(:, end) == e(end)), 1), data(data(:, end) == e(end), 1:end-1));
+		distances_same = dist_func(e(1:end-1), data(data(:, end) == e(end), 1:end-1));
 		distances_same(idx_class) = inf;
 		[~, idxs_closest_same] = mink(distances_same, k);
 		data_same_aux = data(data(:, end) == e(end), :);
@@ -103,7 +103,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 		for cl = classes'  % Go over classes different than the one of current sampled example.
 			if cl ~= e(end)
 				% Get closest k examples with class cl
-				distances_cl = dist_func(repmat(e(1:end-1),  sum(data(:, end) == cl), 1), data(data(:, end) == cl, 1:end-1));
+				distances_cl = dist_func(e(1:end-1), data(data(:, end) == cl, 1:end-1));
 				[~, idx_closest_cl] = mink(distances_cl, k);
 				% Add found closest examples to matrix.
 				data_cl_aux = data(data(:, end) == cl, :);
@@ -155,10 +155,8 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 		for t = 1:size(data, 2) - 1
 			% Penalty term
 			penalty = sum(abs(e(t) - closest_same(:, t))/(max_f_vals(t) - min_f_vals(t)));
-			aux_sum = movsum(abs(e(t) - closest_other(:, t))/(max_f_vals(t) - min_f_vals(t)), k);
-			aux_sum = aux_sum(2:k:end);
+			reward = sum(repelem(p_weights, k).*(abs(e(t) - closest_other(:, t))/(max_f_vals(t) - min_f_vals(t))));
 			% Reward term
-			reward = sum(p_weights .* aux_sum);
 			weights(t) = weights(t) - penalty/(m*k) + reward/(m*k);
 		end
 		% **********************************************************
