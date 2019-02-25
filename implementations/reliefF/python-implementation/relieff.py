@@ -12,7 +12,7 @@ def relieff(data, m, k, dist_func):
     examples or two matrices of examples and return 
 
     Returns:
-    Array of feature scores
+    Array of feature enumerations based on the scores, array of feature scores
 
    """
 
@@ -90,5 +90,8 @@ def relieff(data, m, k, dist_func):
             # Weights update
             weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
             
+        # Create array of feature enumerations based on score.
+        ranks = np.argsort(weights, 0)[::-1]
 
-    return weights
+
+    return ranks, weights
