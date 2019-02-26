@@ -17,7 +17,7 @@ use_deletions = 1;
 timeout = 0.1;
 
 % Create animation and display final feature weights.
-weights = relieff_animation(data3, size(data3, 1), k,  @(a, b) minkowski_dist(a, b, 2), 0, timeout, use_deletions);
+[weights, rank] = relieff_animation(data3, size(data3, 1), k,  @(a, b) minkowski_dist(a, b, 2), 0, timeout, use_deletions);
 % weights = relieff_animation([rand(200, 17000), rand(200, 1) > 0.5], 100, k,  @(a, b) minkowski_dist(a, b, 1), 0, timeout, use_deletions);
 % weights = relieff([rand(100, 17000)], rand(100, 1) > 0.5, 5, 'method', 'classification');
 fprintf('weights = [%.3f, %.3f, %.3f]\n', weights);

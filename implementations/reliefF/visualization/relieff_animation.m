@@ -1,4 +1,4 @@
-function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use_deletions)
+function [rank, weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use_deletions)
 	% function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use_deletions)
 	%
 	% Create an animation of the ReliefF feature selection algorithm
@@ -10,8 +10,8 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 	% dist_func --- distance function for evaluating distance between
 	% examples. The function should be able to take two matrices of
 	% examples and return a vector of distances between the examples.
-	% plot --- if set to 0, the function only computes the weights with no
-	% plotting.
+	% plot --- if set to 0, the function only computes the weights and
+	% ranks without plotting.
 	% timeout --- duration of pause between graphical object plotting function calls.
 	% use_deletions --- logical value that specifies whether to delete the
 	% computation visualization when moving onto next example in the
@@ -57,7 +57,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 	p_classes = [classes, histcounts(data(:, end), 'Normalization', 'probability')'];
 	
 	% Go over examples in sample.
-	for idx = idx_sampled
+	for rank = idx_sampled
 		
 		
 		
@@ -72,7 +72,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 		
 		
 		% Get next sampled example.
-		e = data(idx, :);
+		e = data(rank, :);
 		
 		
 		
@@ -87,7 +87,7 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 		
 		
 		% Get index of sampled example in group of examples of same class.
-		data_class_aux = data(1:idx-1, end); idx_class = idx - sum(data_class_aux ~= e(end));
+		data_class_aux = data(1:rank-1, end); idx_class = rank - sum(data_class_aux ~= e(end));
 		
 		% Find k nearest examples from same class.
 		distances_same = dist_func(e(1:end-1), data(data(:, end) == e(end), 1:end-1));
@@ -160,6 +160,11 @@ function [weights] = relieff_animation(data, m, k, dist_func, plot, timeout, use
 			weights(t) = weights(t) - penalty/(m*k) + reward/(m*k);
 		end
 		% **********************************************************
-		
 	end
+	
+	% Rank features.
+	[~, p] = sort(weights, 'descend');
+	rank = 1:length(weights);
+	rank(p) = rank;
+	
 end

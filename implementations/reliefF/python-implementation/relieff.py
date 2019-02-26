@@ -14,6 +14,8 @@ def relieff(data, m, k, dist_func):
     Returns:
     Array of feature enumerations based on the scores, array of feature scores
 
+    Author: Jernej Vivod
+
    """
 
     # Initialize all weights to 0.

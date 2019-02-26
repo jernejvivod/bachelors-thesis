@@ -5,7 +5,7 @@ data1 = [0 0 0 0; 0 0 1 0; 0 1 1 1; 0 1 0 1; 1 0 0 1; 1 0 1 1; 1 1 0 0; 1 1 0 0]
 data2 = load('rba_test_data.m');
 
 % Test data 3
-data2 = load('rba_test_data2.m');
+data3 = load('rba_test_data2.m');
 
 % Set m parameter.
 m = 50;
@@ -14,10 +14,10 @@ m = 50;
 use_deletions = 1;
 
 % Set example animation timeout
-timeout = 0.3;
+timeout = 0.1;
 
 % Create animation and display final feature weights.
-weights = relief_animation(data2, m,  @(a, b) minkowski_dist(a, b, 2), timeout, use_deletions);
+[rank, weights] = relief_animation(data3, size(data3, 1),  @(a, b) minkowski_dist(a, b, 2), 0, timeout, use_deletions);
 fprintf('weights = [%.3f, %.3f, %.3f]\n', weights);
 
 % Define minkowski function that takes two vectors or matrices

@@ -1,4 +1,4 @@
-function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_deletions)
+function [rank, weights] = relief_animation(data, m, dist_func, plot, timeout, use_deletions)
 	% function [weights] = relief_animation(data, m, dist_func, timeout, use_deletions)
 	%
 	% Create an animation of the basic Relief feature selection algorithm
@@ -15,6 +15,8 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 	% use_deletions --- logical value that specifies whether to delete the
 	% computation visualization when moving onto next example in the
 	% sample.
+	%
+	% Author: Jernej Vivod
 	
 	% Set parameter values if not present in call.
 	if nargin < 6
@@ -24,17 +26,6 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 			if nargin < 4
 				plot = 0;
 			end
-		end
-	end
-
-	% diff: score distance between two examples
-	function [res] = diff(idx_feature, e1, e2, max_f_val, min_f_val)
-		% if feature continuous
-		% TODO continuous? optional argument.
-		if 1
-			res = abs(e1(idx_feature) - e2(idx_feature))/(max_f_val - min_f_val);
-		else  % if feature discrete
-			if e1(idx_feature) == e2(idx_feature); res = 0; else; res = 1; end
 		end
 	end
 
@@ -48,6 +39,7 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 	max_f_vals = max(data(:, 1:end-1));
 	min_f_vals = min(data(:, 1:end-1));
 
+	
 	
 	% ### PLOTTING ###
 	if plot
@@ -63,6 +55,7 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 	
 	for idx = idx_sampled
 		
+	
 		
 		% ### PLOTTING ###
 		if plot
@@ -77,6 +70,7 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 		e = data(idx, :);  % Get example that was sampled.
 		
 		
+		
 		% ### PLOTTING ###
 		if plot
 			% Mark selected example.
@@ -86,8 +80,9 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 		% ### /PLOTTING ###
 		
 		
+		
 		% Get index of sampled example in subset of examples with same class.
-		data_class_aux = data(1:idx-1, end); idx_class = idx - sum(data_class_aux ~= e(end));  
+		data_class_aux = data(1:idx-1, end); idx_class = idx - sum(data_class_aux ~= e(end));
 		
 		% Find nearest example from same class (H) and nearest example from differensample_pt class (M).
 		distances_same = dist_func(repmat(e(1:end-1), sum(data(:, end) == e(end)), 1), data(data(:, end) == e(end), 1:end-1));
@@ -120,11 +115,20 @@ function [weights] = relief_animation(data, m, dist_func, plot, timeout, use_del
 		end
 		% ### /PLOTTING ###
 		
-	
-			
+		
+		
+		% ***************** FEATURE WEIGHTS UPDATE *****************
 		% Go over features and update weights.
-		for k = 1:size(data, 2)-1
-			weights(k) = weights(k) - diff(k, e, closest_same, max_f_vals(k), min_f_vals(k))/m + diff(k, e, closest_diff, max_f_vals(k), min_f_vals(k))/m;
+		for t = 1:size(data, 2)-1
+			weights(t) = weights(t) - (abs(e(t) - closest_same(t))/(max_f_vals(t) - min_f_vals(t)))/m + (abs(e(t) - closest_diff(t))/(max_f_vals(t) - min_f_vals(t)))/m;
 		end
+		% **********************************************************
+		
 	end
+	
+	% Rank features.
+	[~, p] = sort(weights, 'descend');
+	rank = 1:length(weights);
+	rank(p) = rank;
+	
 end
