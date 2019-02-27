@@ -1,3 +1,1 @@
-Simplify Python implementation
-Create Python implementation using jit with last for loop
 Move generate_relief_test_dataset.m, ... to separate folder
