@@ -1,0 +1,3 @@
+- Make functions accept matrix of features and matrix of targets separately
+- Write sheet for ReliefF
+- Write sheet for Iterative Relief

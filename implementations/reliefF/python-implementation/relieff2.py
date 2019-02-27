@@ -1,22 +1,48 @@
 import numpy as np
 import pdb
+import numba as nb
 
 def relieff(data, m, k, dist_func):
     """Compute feature scores using ReliefF algorithm
 
-    Parameters:
+    --- Parameters: ---
+
     data: Matrix containing examples' data as rows (the last column contains the classes)
+
     m: Sample size to use when evaluating the feature scores
+
     k: Number of closest examples from each class to use
+
     dist_func: function for evaluating distances between examples. The function should acept two
-    examples or two matrices of examples and return 
+	examples or two matrices of examples and return 
+
+	------
 
     Returns:
     Array of feature enumerations based on the scores, array of feature scores
 
     Author: Jernej Vivod
 
-   """
+    """
+
+    # update_weights: go over features and update weights.
+    @nb.njit
+    def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
+        for t in np.arange(data.shape[1]-1):
+
+            # Penalty term
+            penalty = np.sum(np.abs(e[t] - closest_same[:, t])/(max_f_vals[t] - min_f_vals[t]))
+
+            # Reward term
+            reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/(max_f_vals[t] - min_f_vals[t])))
+
+            # Weights update
+            weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
+
+        # Return updated weights.
+        return weights
+
+
 
     # Initialize all weights to 0.
     weights = np.zeros(data.shape[1] - 1, dtype=float)
@@ -47,6 +73,7 @@ def relieff(data, m, k, dist_func):
         
         # Find k nearest examples from same class.
         distances_same = dist_func(e[:-1], data[data[:, -1] == e[-1], :-1])
+
         # Set distance of sampled example to itself to infinity.
         distances_same[idx_class] = np.inf
 
@@ -75,25 +102,30 @@ def relieff(data, m, k, dist_func):
         p_classes_other = p_classes[p_classes[:, 0] != e[-1], 1]
         
         # Compute diff sum weights for closest examples from different class.
-        p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == e[-1], 1]) #
+        p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == e[-1], 1])
+        weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
         
 
         # ------ weights update ------
-
-        # Go over features and update weights.
-        for t in np.arange(data.shape[1]-1):
-
-            # Penalty term
-            penalty = np.sum(abs(e[t] - closest_same[:, t])/(max_f_vals[t] - min_f_vals[t]))
-
-            # Reward term
-            reward = np.sum(np.repeat(p_weights, k) * (abs(e[t] - closest_other[:, t])/(max_f_vals[t] - min_f_vals[t])))
-
-            # Weights update
-            weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
-            
+        weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals)
+        
         # Create array of feature enumerations based on score.
-        ranks = np.argsort(weights, 0)[::-1]
+        rank = np.argsort(weights, 0)[::-1]
 
 
-    return ranks, weights
+    return rank, weights
+
+
+# Test
+if __name__ == '__main__':
+
+    def minkowski_distance(e1, e2, p):
+        return np.sum(np.abs(e1 - e2)**p, 1)**(1/p)
+
+    test_data = np.loadtxt('rba_test_data2.m')
+
+    test_data_large = np.random.rand(200, 17000)
+    target = ((np.random.rand(200) > 0.5).astype(int))[np.newaxis].T
+    test_data_large = np.hstack((test_data_large, target))
+
+    rank, weights = relieff(test_data, test_data.shape[0], 5, lambda a, b: minkowski_distance(a, b, 2));

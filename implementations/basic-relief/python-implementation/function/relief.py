@@ -1,30 +1,38 @@
 import numpy as np
 import pdb
-from distance_measures import dist_meas
 from functools import partial
-from sklearn.datasets import load_iris
+import numba as nb
 
-def relief(data, m, distance_measure):
-    """ Get vector of feature quality estimations using the Relief algorithm.
+def relief(data, m, dist_func):
+    """Compute feature scores using Relief algorithm
 
-    input: features and class for each training example, parameter m, distance measure
-    output: vector of feature quality estimations
+    --- Parameters: ---
 
-    Parameters
-    ----------
-    data: numpy.ndarray
-        data matrix
-    target: numpy.ndarray
-        target variable values
-    m: int
-        sample size
-    distance_measure: function (list * list -> real list)
-        distance function for comparing two examples
+    data: Matrix containing examples' data as rows (the last column contains the classes)
 
-    Returns: ranks of features and feature weights
+    m: Sample size to use when evaluating the feature scores
+
+    dist_func: function for evaluating distances between examples. The function should acept two
+    examples or two matrices of examples and return 
+
+    ------
+
+    Returns:
+    Array of feature enumerations based on the scores, array of feature scores
 
     Author: Jernej Vivod
+
     """
+
+    # update_weights: go over features and update weights.
+    @nb.njit
+    def _update_weights(data, e, closest_same, closest_other, weights, max_f_vals, min_f_vals):
+        for t in np.arange(data.shape[1]-1):
+            # Update weights
+            weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/(max_f_vals[t] - min_f_vals[t]))/m + \
+                (np.abs(e[t] - closest_other[t])/(max_f_vals[t] - min_f_vals[t]))/m
+
+        return weights  # Return updated weights
 
     # Initialize all weights to zero.
     weights = np.zeros(data.shape[1]-1, dtype=float)
@@ -45,17 +53,15 @@ def relief(data, m, distance_measure):
         idx_subset = idx - sum(~msk[:idx+1])
 
         # Find nearest hit and nearest miss.
-        dist = partial(distance_measure, e[:-1])  # Curry distance function with chosen example data vector.
+        dist = partial(dist_func, e[:-1])  # Curry distance function with chosen example data vector.
         d_same = dist(data[msk, :-1]) 
         d_same[idx_subset] = np.inf     # Set distance of sampled example to itself to infinity.
         d_other = dist(data[~msk, :-1])
-        nearest_hit = data[msk, :][d_same.argmin(), :]
-        nearest_miss = data[~msk, :][d_other.argmin(), :]
+        closest_same = data[msk, :][d_same.argmin(), :]
+        closest_other = data[~msk, :][d_other.argmin(), :]
 
-        for t in np.arange(data.shape[1]-1):
-            # Update weights
-            weights[t] = weights[t] - (np.abs(e[t] - nearest_hit[t])/(max_f_vals[t] - min_f_vals[t]))/m + \
-                (np.abs(e[t] - nearest_miss[t])/(max_f_vals[t] - min_f_vals[t]))/m
+        # ------ weights update ------
+        weights = _update_weights(data, e, closest_same, closest_other, weights, max_f_vals, min_f_vals)
 
 
     # Create array of feature enumerations based on score.
@@ -70,9 +76,4 @@ if __name__ == '__main__':
         return np.sum(np.abs(e1 - e2)**p, 1)**(1/p)
 
     test_data = np.loadtxt('rba_test_data2.m')
-
-    # test_data_large = np.random.rand(200, 17000)
-    # target = ((np.random.rand(200) > 0.5).astype(int))[np.newaxis].T
-    # test_data_large = np.hstack((test_data_large, target))
-
     rank, weights = relief(test_data, test_data.shape[0], lambda a, b: minkowski_distance(a, b, 2));

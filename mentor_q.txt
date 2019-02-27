@@ -1,0 +1,8 @@
+How to know in algorithm if feature discrete
+Iterative relief idea
+Difference between Iterative Relief and I-Relief
+Weight results for library Relief function
+Chapters outline
+Speed in R
+Which RBAs to cover
+Algorithms besides RBAs SPEC?
