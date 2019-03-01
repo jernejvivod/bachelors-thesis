@@ -4,8 +4,7 @@ function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_i
 	% Create an animation of the Iterative Relief feature selection algorithm
 	% using three dimensional feature space.
 	%
-	% data --- matrix of training data features in rows
-	% target --- matrix containing the class values for each example
+	% data --- matrix of training data with class column as the last column.
 	% m --- the m parameter (example sample size)
 	% min_incl --- the minimum number of examples from same and other
 	% classes that a hypersphere centered at each examples should have.
@@ -13,7 +12,7 @@ function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_i
 	% examples. The function should be able to take two matrices of
 	% examples and return a vector of distances between the examples. The
 	% distance function should accept a distance parameter.
-	% max_iter --- Maximum number of iterations to compute.
+	% ma
 	% plot --- if set to 0, the function only computes the weights and
 	% ranks without plotting.
 	% timeout --- duration of pause between graphical object plotting function calls.
