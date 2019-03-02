@@ -1,4 +1,4 @@
-function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_incl, dist_func, max_iter, plot, timeout, use_deletions)
+function [rank, dist_weights] = iterative_relief_animation(data, target, m, min_incl, dist_func, max_iter, plot, timeout, use_deletions)
 	% function [weights] = iterative_relief_animation(data, target, m, min_incl, dist_func, max_iter, plot, timeout, use_deletions)
 	%
 	% Create an animation of the Iterative Relief feature selection algorithm
@@ -8,11 +8,11 @@ function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_i
 	% target --- matrix containing the class values for each example
 	% m --- the m parameter (example sample size)
 	% min_incl --- the minimum number of examples from same and other
-	% classes that a hypersphere centered at each examples should have.
+	% classes that a hypersphere centered at each examples should contain.
 	% dist_func --- distance function for evaluating distance between
 	% examples. The function should be able to take two matrices of
 	% examples and return a vector of distances between the examples. The
-	% distance function should accept a distance parameter.
+	% distance function should accept a weights parameter.
 	% max_iter --- Maximum number of iterations to compute.
 	% plot --- if set to 0, the function only computes the weights and
 	% ranks without plotting.
@@ -81,7 +81,7 @@ function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_i
 		idx_sampled = randsample(1:size(data, 1), m);
 		
 		% Go over examples in sample.
-		for idx = idx_sampled
+		for idx = 1:10
 
 
 
@@ -192,7 +192,7 @@ function [idx, dist_weights] = iterative_relief_animation(data, target, m, min_i
 	
 	% Rank features.
 	[~, p] = sort(dist_weights, 'descend');
-	idx = 1:length(dist_weights);
-	idx(p) = idx;
+	rank = 1:length(dist_weights);
+	rank(p) = rank;
 	
 end

@@ -1,7 +1,8 @@
 import numpy as np
 import sklearn.metrics as sk_metrics
+import warnings
 
-def min_radius_n(n, data, target, dist_metric):
+def min_radius(n, data, target, dist_metric):
     """Compute minimum radius of hypersphere such that for each example in
     the data matrix as the centre the sphere will contain at least n examples from
     same class and n examples from a different class.

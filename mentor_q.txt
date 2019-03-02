@@ -6,3 +6,5 @@ Chapters outline
 Speed in R
 Which RBAs to cover
 Algorithms besides RBAs SPEC?
+
+Kako se reče množici vseh možnih primerov pri nekem klasifikacijskem problemu? Problemski prostor?
