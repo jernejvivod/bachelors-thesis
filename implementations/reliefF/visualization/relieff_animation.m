@@ -155,8 +155,8 @@ function [rank, weights] = relieff_animation(data, m, k, dist_func, plot, timeou
 		for t = 1:size(data, 2) - 1
 			% Penalty term
 			penalty = sum(abs(e(t) - closest_same(:, t))/(max_f_vals(t) - min_f_vals(t)));
-			reward = sum(repelem(p_weights, k).*(abs(e(t) - closest_other(:, t))/(max_f_vals(t) - min_f_vals(t))));
 			% Reward term
+			reward = sum(repelem(p_weights, k, 1).*(abs(e(t) - closest_other(:, t))/(max_f_vals(t) - min_f_vals(t))));
 			weights(t) = weights(t) - penalty/(m*k) + reward/(m*k);
 		end
 		% **********************************************************

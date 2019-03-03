@@ -17,7 +17,7 @@ use_deletions = 1;
 timeout = 0.01;
 
 % Create animation and display final feature rank and weights.
-[rank, weights] = iterative_relief_animation(data3(:, 1:end-1), data3(:, end), size(data3, 1), min_incl,  @(a, b, w) minkowski_dist_weighted(a, b, w, 2), 300, 0, timeout, use_deletions);
+[rank, weights] = iterative_relief_animation(data3(:, 1:end-1), data3(:, end), size(data3, 1), min_incl,  @(a, b, w) minkowski_dist_weighted(a, b, w, 2), 100, 0, timeout, use_deletions);
 
 fprintf('rank = [%d, %d, %d]\n', rank);
 fprintf('weights = [%.3f, %.3f, %.3f]\n', weights);

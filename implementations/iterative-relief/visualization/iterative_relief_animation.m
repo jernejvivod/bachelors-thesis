@@ -81,7 +81,7 @@ function [rank, dist_weights] = iterative_relief_animation(data, target, m, min_
 		idx_sampled = randsample(1:size(data, 1), m);
 		
 		% Go over examples in sample.
-		for idx = 1:10
+		for idx = idx_sampled
 
 
 
