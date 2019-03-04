@@ -14,9 +14,9 @@ for k = 1:size(rand_points, 1)
 end
 
 % Plot results.
-figure; hold on;
+figure('Renderer', 'painters', 'Position', [10 10 800 450]); hold on;
 plot(1:size(rand_points, 2), res(:, 1)); plot(1:size(rand_points, 2), res(:, 2));
 legend('Evklidska razdalja', 'Manhattanska Razdalja');
-title(sprintf('Povprečna razdalja med naključnimi točkami v hiperkocki z stranico dolžine 1 v odvisnosti od dimenzionalnosti hiperkocke'));
+title(sprintf('Povprečna razdalja med naključnimi točkami v hiperkocki\nz stranico dolžine 1 v odvisnosti od dimenzionalnosti hiperkocke'));
 xlabel('dimenzionalnost hiperkocke');
 ylabel(sprintf('povprečne razdalja med %d naključnimi točkami', size(rand_points, 1)));

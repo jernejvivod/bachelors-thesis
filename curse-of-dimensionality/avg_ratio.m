@@ -20,7 +20,7 @@ for k = 1:size(rand_points, 2)
 end
 
 % Plot results.
-figure; hold on;
+figure('Renderer', 'painters', 'Position', [10 10 800 450]); hold on;
 plot(1:size(rand_points, 2), res(:, 1)); plot(1:size(rand_points, 2), res(:, 2));
 legend('Evklidska razdalja', 'Manhattanska Razdalja');
 title(sprintf('Povprečno razmerje med razdaljo do najbližje točke in razdaljo do\nnajbolj oddaljene točke v odvisnosti od dimenzionalnosti prostora'));
