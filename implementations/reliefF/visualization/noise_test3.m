@@ -16,10 +16,10 @@ l1 = animatedline('Color','b');
 l2 = animatedline('Color','r');
 l3 = animatedline('Color','y');
 
-xlim([0, lim_noise]); ylim([-50, 100]); xlabel('number of noise features'); ylabel('Weight');
+xlim([0, lim_noise]); ylim([-0.05, 0.5]); xlabel('number of noise features'); ylabel('weight');
 pause(0.5);
 for k = 0:lim_noise
-	[rank, weights] = iterative_relief_animation(noisy_data(:, 1:1+k), target', size(data, 1), 2, @(a, b, w) minkowski_dist_weighted(a, b, w, 2), 100, 0);
+	[~, weights] = relieff(noisy_data(:, 1:1+k), target, 3, 'method', 'classification');
 	res(k+1, 1) = weights(1);
 	if k > 0
 		res(k+1, 2) = mean(weights(2:end));
@@ -34,11 +34,11 @@ for k = 0:lim_noise
 	addpoints(l2, k, res(k+1, 2));
 	addpoints(l3, k, res(k+1, 3));
 	
-	t1 = text(k, res(k+1, 1) + 5, 'monotonic relevant feature weight');
-	t2 = text(k, res(k+1, 2) + 5, 'average noise feature weight');
-	t3 = text(k, res(k+1, 3) + 7, 'maximum noise feature weight');
+	t1 = text(k, res(k+1, 1) + 0.02, 'monotonic relevant feature weight');
+	t2 = text(k, res(k+1, 2) + 0.02, 'average noise feature weight');
+	t3 = text(k, res(k+1, 3) + 0.02, 'maximum noise feature weight');
 	
-	t4 = text(5, 93, sprintf('r1 = %.2f', (res(k+1, 1) + shift_val)/(res(k+1, 2) + shift_val)));
+	t4 = text(5, 280, sprintf('r1 = %.2f', (res(k+1, 1) + shift_val)/(res(k+1, 2) + shift_val)));
 	
 	pause(0.1);
 	delete(t1); delete(t2); delete(t3); delete(t4);
@@ -55,12 +55,4 @@ legend('monotonic relevant feature weight',...
 	'maximal noise feature weight',...
 	'Location', 'southeast');
 
-xlim([0, lim_noise]); xlabel('Number of Noise Features'); ylabel('Weight');
-
-
-% Define weighted minkowski function that takes two vectors or matrices,
-% weights w and the parameter p and returns the distance or vector of 
-% distances between the examples.
-function d = minkowski_dist_weighted(a, b, w, p)
-	d = sum((abs(w.*(a - b)).^p), 2).^(1/p);
-end
+xlim([0, lim_noise]); ylim([-0.05, 0.35]); xlabel('Number of Noise Features'); ylabel('Weight');

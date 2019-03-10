@@ -16,7 +16,7 @@ l4 = animatedline('Color','y');
 xlim([0, lim_noise]); ylim([-0.2, 1]); xlabel('number of noise features'); ylabel('weight');
 pause(0.5);
 for k = 0:lim_noise
-	[~, weights] = relieff_animation([noisy_data(:, 1:2+k), target], size(data, 1), 3, @(a, b) minkowski_dist(a, b, 2), 0);
+	[~, weights] = relieff(noisy_data(:, 1:2+k), target, 3, 'method', 'classification');
 	res(k+1, 1) = weights(1);
 	res(k+1, 2) = weights(2);
 	if k > 0
@@ -57,10 +57,3 @@ legend('monotonic relevant feature weight',...
 	'Location', 'northeast');
 
 xlim([0, lim_noise]); ylim([-0.2, 1]);
-
-% Define minkowski function that takes two vectors or matrices
-% and the parameter p and returns the distance or vector of distances
-% between the examples.
-function d = minkowski_dist(a, b, p)
-	d = sum(abs(a - b).^p, 2).^(1/p);
-end

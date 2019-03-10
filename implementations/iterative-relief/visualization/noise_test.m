@@ -1,7 +1,9 @@
+% Test effects of adding noise features on weight of relevant features.
+
 dataset = load('rba_test_data3.mat');
 target = dataset.dataset.target; data = dataset.dataset.data;
 
-lim_noise = 20;
+lim_noise = 100;
 noisy_data =  [data, rand(size(data, 1), lim_noise)];
 
 res = zeros(lim_noise, 4);

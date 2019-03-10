@@ -32,13 +32,13 @@ feature_proj1([examples, target], 3, 'c');
 
 % Plot separation of classes by each pair of features.
 figure(3); 
-subplot(1, 3, 1); hold on; title('Class Separation by Features a and b')
+subplot(2, 2, 1); hold on; title('Class Separation by Features a and b')
 feature_proj2([examples, target], [1, 2], ['a', 'b']);
 
-subplot(1, 3, 2); hold on; title('Class Separation by Features a and c')
+subplot(2, 2, 2); hold on; title('Class Separation by Features a and c')
 feature_proj2([examples, target], [1, 3], ['a', 'c']);
 
-subplot(1, 3, 3); hold on; title('Class Separation by Features b and c')
+subplot(2, 2, 3); hold on; title('Class Separation by Features b and c')
 feature_proj2([examples, target], [2, 3], ['b', 'c']);
 
 % TODO document functions
