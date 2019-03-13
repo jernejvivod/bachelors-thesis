@@ -1,0 +1,4 @@
+noise_test.m ---- two relevant features, my relieff implementation
+noise_test2.m --- one relevant feature, my relieff implementation
+noise_test3.m --- one relevant feature, MATLAB relieff implementation
+noise_test4.m --- two relevant features, MATLAB relieff implementation

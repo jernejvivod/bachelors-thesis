@@ -1,3 +1,5 @@
+% Test effects of adding noise features on weight of relevant features.
+
 dataset = load('simple_monotonic.mat');
 target = dataset.dataset.target; data = dataset.dataset.data;
 
