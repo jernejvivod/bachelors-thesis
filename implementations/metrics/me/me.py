@@ -32,9 +32,9 @@ def get_random_itree(data_sub):
             return It_node(l=None, r=None, split_attr=None, split_val=None, level=current_height)
         else:
             # Randomly select an attribute q.
-            q = np.random.randint(data.shape[1])
+            q = np.random.randint(x_in.shape[1])
             # Randomly select a split point p between min and max values of attribute q in X.
-            p = np.random.uniform(np.min(data[:, q]), np.max(data[:, q]))
+            p = np.random.uniform(np.min(x_in[:, q]), np.max(x_in[:, q]))
             # Get left and right subtrees.
             xl = x_in[x_in[:, q] < p, :]
             xr = x_in[x_in[:, q] > p, :]

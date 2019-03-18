@@ -1,4 +1,4 @@
-function [] = linear_partitioning_visualization(tree_node, space_dims, lim)
+function [planes] = linear_partitioning_visualization(tree_node, space_dims, lim, axes, planes)
     % function [] = linear_partitioning_visualization(itree_node, space_dims)
     %
     % Visualize 3 dimensional space partitioning by a binary tree.
@@ -9,6 +9,8 @@ function [] = linear_partitioning_visualization(tree_node, space_dims, lim)
     %                  where the ith row represents the ith dimension. The
     %                  first column represents the lower bound and the second 
     %                  column the upper bound.
+    %   axes       ... TODO
+    %   planes     ... TODO
     %
     % Returns:
     %   unit/void
@@ -18,19 +20,19 @@ function [] = linear_partitioning_visualization(tree_node, space_dims, lim)
         return
     else
         % Draw divising plane.
-        draw_div_plane(tree_node.split_dim, tree_node.split_val, space_dims);
+        planes = [planes, draw_div_plane(tree_node.split_dim, tree_node.split_val, space_dims, axes)];
         
         % Compute bounds of region to be split recursively.
         space_dims_nxt1 = space_dims;
         space_dims_nxt1(tree_node.split_dim, 2) = tree_node.split_val;
         % Recursive call for left subtree.
-        linear_partitioning_visualization(tree_node.l, space_dims_nxt1, lim);
+        planes = [planes, linear_partitioning_visualization(tree_node.l, space_dims_nxt1, lim, axes, planes)];
         
         % Compute bounds of region to be split recursively.
         space_dims_nxt2 = space_dims;
         space_dims_nxt2(tree_node.split_dim, 1) = tree_node.split_val;
         % Recursive call for right subtree.
-        linear_partitioning_visualization(tree_node.r, space_dims_nxt2, lim);
+        planes = [planes, linear_partitioning_visualization(tree_node.r, space_dims_nxt2, lim, axes, planes)];
         
     end
 end
