@@ -20,7 +20,7 @@ function [tree] = get_random_itree(data_sub)
 
 			% Get left and right subtrees.
 			xl = x_in(x_in(:, q) < p, :);
-			xr = x_in(x_in(:, q) > p, :);
+			xr = x_in(x_in(:, q) >= p, :);
 			
 			% Recursive case
 			node = It_node(random_itree(xl, current_height+1, lim),...

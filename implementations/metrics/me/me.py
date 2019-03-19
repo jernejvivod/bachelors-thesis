@@ -1,19 +1,57 @@
 import numpy as np
+from itree_utils import It_node
+
+def get_lowest_common_node_mass(itree, x1, x2):
+    """ 
+    Get mass of lowest node containing both x1 and x2.
+
+    Args:
+        itree               ... starting itree node
+        x1                  ... example 1
+        x2                  ... example 2
+    Returns:
+        mass of lowest node containing both x1 and x2
+    """
+    # 1. base case - if node is a leaf (no splitting value), return mass of node.
+    if itree.split_val == None:
+        return itree.mass
+
+    # 2. base case - if split attribute value above split value for one and below split value
+    # for other examples, return mass of node.
+    if (x1[itree.split_attr] < itree.split_val) != (x2[itree.split_attr] < itree.split_val):
+        return itree.mass
+
+    # 1. Recursive case - both split attribute value < split value:
+    # Go to left subtree.
+    if x1[itree.split_attr] < itree.split_val and x2[itree.split_attr] < itree.split_val:
+        return get_lowest_common_node_mass(itree.l, x1, x2)
 
 
+    # 2. Recursive case - both split attribute value > split value:
+    # Go to right subtree.
+    if x1[itree.split_attr] >= itree.split_val and x2[itree.split_attr] >= itree.split_val:
+        return get_lowest_common_node_mass(itree.r, x1, x2)
 
 
+def mass_based_dissimilarity(x1, x2, random_itrees, example_subset_size):
+    """ 
+    Get mass based dissimilarity of examples x1 and x2.
 
-def mass_based_dissimilarity(x1, x2):
-    pass
-
-
-
-
-
-
-
-
+    Args:
+        x1                  ... example 1
+        x2                  ... example 2
+        random_itrees       ... list of random itrees built on training examples
+        example_subset_size ... size of training example subset used to build random itrees
+    Returns:
+        mass based dissimilarity of examples x1 and x2
+    """
+    # In each i-tree, find lowest nodes containing both x and y
+    # TODO: parallelize
+    sum_masses = 0
+    for itree in random_itrees:
+        # Divide each sum by size of subset used to construct the trees.
+        sum_masses += get_lowest_common_node_mass(itree, x1, x2)/example_subset_size
+    return (1/len(random_itrees)) * sum_masses  # Divide by number of space partitioning models.
 
 
 def get_random_itree(data_sub):
@@ -37,7 +75,7 @@ def get_random_itree(data_sub):
             p = np.random.uniform(np.min(x_in[:, q]), np.max(x_in[:, q]))
             # Get left and right subtrees.
             xl = x_in[x_in[:, q] < p, :]
-            xr = x_in[x_in[:, q] > p, :]
+            xr = x_in[x_in[:, q] >= p, :]
             # Recursive case
             return It_node(l=random_itree(xl, current_height+1, lim),\
                            r=random_itree(xr, current_height+1, lim),\
@@ -47,14 +85,6 @@ def get_random_itree(data_sub):
 
     # Build itree
     return random_itree(data_sub, current_height=0, lim=10)
-
-
-
-
-
-
-
-
 
 
 def get_n_random_itrees(n, data, sub_size):
@@ -71,8 +101,9 @@ def get_n_random_itrees(n, data, sub_size):
     random_trees = np.empty(n, dtype=object)  # Allocate list for storing the trees.
     # TODO: parallelize!
     for k in np.arange(n):
+        # Get a random sample of training examples to build next random itree.
         data_sub = data[np.random.choice(data.shape[0], sub_size, replace=False), :]
-        random_trees[k] = get_random_itree(data_sub) 
+        random_trees[k] = get_random_itree(data_sub)  # Get next random itree 
     return random_trees
 
 
@@ -88,32 +119,38 @@ def get_node_masses(data, random_itrees):
         list of random itrees with set mass property
     """
 
+    # traverse: traverse itree with example and increment masses of visited nodes
     def traverse(example, it_node):
+        # base case - in leaf
         if it_node.l == None and it_node.r == None:
             it_node.mass += 1
+        # if split attribute value lower than split value
         elif example[it_node.split_attr] < it_node.split_val:
             it_node.mass += 1
-            traverse(example, it_node.l)
+            traverse(example, it_node.l)  # Traverse left subtree.
+        # if split attribute value greater or equal to split value
         else:
             it_node.mass += 1
-            traverse(example, it_node.r)
+            traverse(example, it_node.r)  # Traverse right subtree.
 
-
+    # compute_masses: compute masses of nodes in itree
     def compute_masses(data, itree):
         for example in data:
             traverse(example, itree)
 
     # TODO: parallelize!
-    for itree in random_itrees:
+    for itree in random_itrees:  # Go over itrees and set masses of nodes.
         compute_masses(data, itree)
 
 
-
+# If running as main script, perform simple test.
 if __name__ == "__main__":
     import numpy as np
+    import scipy.io as sio
     import pdb
     from itree_utils import It_node
-
-    data = np.array([[1, 2, 3], [3, 2, 1], [6, 7 ,2]])
-    random_itrees = get_n_random_itrees(10, data, 1)
-    get_node_masses(data, random_itrees)
+    examples = sio.loadmat('./data/examples.mat')['examples']
+    random_itrees = get_n_random_itrees(10, examples, examples.shape[0])
+    get_node_masses(examples, random_itrees)
+    me = mass_based_dissimilarity(examples[0, :], examples[1, :] , random_itrees, examples.shape[0])
+    print(me)
