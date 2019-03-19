@@ -14,7 +14,8 @@ def get_mu_neighbourhood_masses(examples, mu, me_func):
         (the indices correspond)
     """
     
-    # Initialize generator of pairwise dissimilarities between examples.
+    # Initialize generator of pairwise dissimilarities between examples
+    # (force generation by rows by setting working_memory to 0).
     gen = sklearn.metrics.pairwise_distances_chunked(\
             examples, metric=me_func, n_jobs=-1, working_memory=0)
     # Allocate array for storing results (mu-neighbourhood masses).
@@ -31,9 +32,9 @@ if __name__ == '__main__':
     import scipy.io as sio
     import pdb
     from itree_utils import It_node
-    from me import get_n_random_itrees
-    from me import get_node_masses
-    from me import mass_based_dissimilarity
+    from me_dissim import get_n_random_itrees
+    from me_dissim import get_node_masses
+    from me_dissim import mass_based_dissimilarity
 
     examples = sio.loadmat('./data/examples.mat')['examples']
     sub_size = examples.shape[0]
@@ -42,5 +43,5 @@ if __name__ == '__main__':
 
     # Note contruction of me_func.
     res = get_mu_neighbourhood_masses(\
-            examples, 0.2, lambda x1, x2: mass_based_dissimilarity(x1, x2, random_itrees, sub_size))
+            examples, 0.4, lambda x1, x2: mass_based_dissimilarity(x1, x2, random_itrees, sub_size))
 
