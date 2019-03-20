@@ -33,7 +33,7 @@ def get_lowest_common_node_mass(itree, x1, x2):
         return get_lowest_common_node_mass(itree.r, x1, x2)
 
 
-def mass_based_dissimilarity(x1, x2, random_itrees, example_subset_size):
+def mass_based_dissimilarity(x1, x2, random_itrees, num_training_examples):
     """ 
     Get mass based dissimilarity of examples x1 and x2.
 
@@ -50,7 +50,7 @@ def mass_based_dissimilarity(x1, x2, random_itrees, example_subset_size):
     sum_masses = 0
     for itree in random_itrees:
         # Divide each sum by size of subset used to construct the trees.
-        sum_masses += get_lowest_common_node_mass(itree, x1, x2)/example_subset_size
+        sum_masses += get_lowest_common_node_mass(itree, x1, x2)/num_training_examples
     return (1/len(random_itrees)) * sum_masses  # Divide by number of space partitioning models.
 
 
