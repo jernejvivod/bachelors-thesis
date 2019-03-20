@@ -32,6 +32,6 @@ function [tree] = get_random_itree(data_sub)
 	end	
 
 	% Build itree.
-	tree = random_itree(data_sub, 0, 10);
+	tree = random_itree(data_sub, 0, Inf);
 
 end
