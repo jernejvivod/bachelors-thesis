@@ -1,5 +1,5 @@
-1. heatmap colors for distance lines in MATLAB visualizations
-2. visualization of itree partitioning of spaces
+1. Traverse itrees with all examples (vectorize)
+
 
 
 ---

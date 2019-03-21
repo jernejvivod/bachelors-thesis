@@ -36,6 +36,7 @@ function [rank, weights] = relief_animation(data, m, dist_func, plot, axes, fgr,
         if plot
             % Set axes labels.
             axes.XLabel.String = 'a'; axes.YLabel.String = 'b'; axes.ZLabel.String = "c";
+            % Set pause.
             pause on
         end
         % ### /PLOTTING ###

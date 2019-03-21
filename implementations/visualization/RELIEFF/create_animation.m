@@ -19,9 +19,12 @@ function [] = create_animation(axes, fgr, pauseBtnHandle, resetBtnHandle, timeou
 
     % Use deletions
     use_deletions = 1;
+    
+    % Set k parameter.
+    k = 5;
 
     % Create animation and display final feature weights.
-    relief_animation(data, size(data, 1),  @(a, b) minkowski_dist(a, b, 2), 1, axes, fgr, pauseBtnHandle, resetBtnHandle, timeout, use_deletions);
+    relieff_animation(data, size(data, 1), k,  @(a, b) minkowski_dist(a, b, 2), 1, axes, fgr, pauseBtnHandle, resetBtnHandle, timeout, use_deletions);
 
     % Define minkowski function that takes two vectors or matrices
     % and the parameter p and returns the distance or vector of distances
