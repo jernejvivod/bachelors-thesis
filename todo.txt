@@ -1,6 +1,1 @@
 1. Traverse itrees with all examples (vectorize)
-
-
-
----
-3. Make matlab app for visualizations

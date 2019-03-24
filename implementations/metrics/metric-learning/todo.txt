@@ -1,0 +1,1 @@
+transfrom NCA, LDA and Covariance to form modeled on PCA (change metric function)

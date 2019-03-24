@@ -1,29 +1,19 @@
-from metric_learn import Covariance
-from sklearn.datasets import load_iris
-
-## Mahalanobis distance ##
-
-# The Mahalanobis distance measures the number of standard deviations from P 
-# to the mean of D. If each of these axes is re-scaled to have unit variance, 
-# then the Mahalanobis distance corresponds to standard Euclidean distance in the transformed space.
-# The Mahalanobis distance is thus unitless and scale-invariant, 
-# and takes into account the correlations of the data set.
-
 from sklearn.preprocessing import StandardScaler
-from metric_learn import Covariance
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numpy as np
 from typing import Callable
 from nptyping import Array
 
 # Idea - reduce the dimensionality of examples and measure distances between examples in this space.
 
-def get_dist_func(data : Array[np.float64], target : int,  metric : Callable[[np.float64, np.float64], np.float64]) -> Callable[[int, int], np.float64]:
+def get_dist_func(data : Array[np.float64], target : int, n : int,  metric : Callable[[np.float64, np.float64], np.float64]) -> Callable[[int, int], np.float64]:
     """
     Get function that returns distances between examples in learned space.
 
     Args:
         data : Array[np.float64] - training data_trans
         target : int - target variable values (classes of training examples)
+        n : int - number of components to keep
         dist_func : Callable[[np.float64, np.float64], np.float64] - metric for measuring distances in learned space.
     Returns:
         Callable[[np.float64, np.float64], np.float64] - function that takes indices of training examples
@@ -32,7 +22,7 @@ def get_dist_func(data : Array[np.float64], target : int,  metric : Callable[[np
     """
 
     # Get transformed data.
-    data_trans : Array[np.float64] = Covariance().fit_transform(StandardScaler().fit_transform(data), target)
+    data_trans : Array[np.float64] = LinearDiscriminantAnalysis(n_components=n).fit_transform(StandardScaler().fit_transform(data), target)
 
     # Computing distance:
     def dist_func_res(i1 : int, i2 : int) -> np.float64:
@@ -58,7 +48,7 @@ if __name__ == '__main__':
     data : Array[np.float64] = load_iris()['data']  # Get examples from Iris dataset.
     target : Array[np.int] = load_iris()['target']  # Get classes of examples from Iris dataset.
     dist_func : Callable[[np.float64, np.float64], np.float64] = \
-            get_dist_func(data, target, lambda x1, x2: (np.sum(np.abs(x1 - x2)**2))**(1/2))  # Get distance function. Use euclidean distance as metric in
+            get_dist_func(data, target, 3, lambda x1, x2: (np.sum(np.abs(x1 - x2)**2))**(1/2))  # Get distance function. Use euclidean distance as metric in
                                                                                                 # learned space.
     print("distance between first and second example in learned metric space: {0}".format(dist_func(1, 2)));
 

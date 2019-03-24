@@ -1,4 +1,4 @@
-from metric_learn import Covariance
+from metric_learn import NCA
 from sklearn.datasets import load_iris
 
 ## Mahalanobis distance ##
@@ -15,8 +15,6 @@ import numpy as np
 from typing import Callable
 from nptyping import Array
 
-# Idea - reduce the dimensionality of examples and measure distances between examples in this space.
-
 def get_dist_func(data : Array[np.float64], target : int,  metric : Callable[[np.float64, np.float64], np.float64]) -> Callable[[int, int], np.float64]:
     """
     Get function that returns distances between examples in learned space.
@@ -32,7 +30,7 @@ def get_dist_func(data : Array[np.float64], target : int,  metric : Callable[[np
     """
 
     # Get transformed data.
-    data_trans : Array[np.float64] = Covariance().fit_transform(StandardScaler().fit_transform(data), target)
+    data_trans : Array[np.float64] = NCA().fit_transform(StandardScaler().fit_transform(data), target)
 
     # Computing distance:
     def dist_func_res(i1 : int, i2 : int) -> np.float64:

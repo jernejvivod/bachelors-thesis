@@ -19,7 +19,7 @@ def get_dist_func(data : Array[np.float64]) -> Callable[[Callable[[np.float64, n
     """
 
     # Get transformed data.
-    data_trans : Array[np.float64] = PCA(n_components='mle').fit_transform(StandardScaler().fit_transform(data))
+    data_trans : Array[np.float64] = PCA().fit_transform(StandardScaler().fit_transform(data))
 
     # distance_function definition
     def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : int, i2 : int) -> np.float64:
