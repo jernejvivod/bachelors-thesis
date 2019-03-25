@@ -24,10 +24,11 @@ def get_dist_func(data : Array[np.float64]) -> Callable[[Callable[[np.float64, n
     # distance_function definition
     def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : int, i2 : int) -> np.float64:
         """ 
-        distance function that takes indices of examples in training set and returns distance
+        distance function that takes metric function and indices of examples in training set and returns distance
         in learned space using specified distance metric.
 
         Args:
+            metric: Callable[[np.flaot64, np.float64], np.float64] - metric to use in learned metric space.
             i1 : int - index of first training example
             i2 : int - index of second training example
         Returns:
@@ -44,4 +45,4 @@ if __name__ == '__main__':
     from sklearn.datasets import load_iris  # Import function that loads the Iris dataset.
     data : Array[np.float64] = load_iris()['data']  # Get examples from Iris dataset.
     dist_func : Callable[[Callable[[np.float64, np.float64], np.float64], np.float64, np.float64], np.float64] = get_dist_func(data)  # Get distance function. 
-    print("distance between first and second example in learned metric space: {0}".format(dist_func(lambda x1, x2 : (np.sum(np.abs(x1 - x2)**2))**(1/2), 1, 2)));
+    print("distances: {0}".format(dist_func(lambda x1, x2 : (np.sum(np.abs(x1 - x2)**2, 1))**(1/2), 1, [0, 1, 2])));
