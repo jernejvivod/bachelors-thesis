@@ -18,6 +18,7 @@ from sklearn.naive_bayes import GaussianNB  # 8
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis  # 9
 
 from sklearn.model_selection import cross_val_score, KFold
+from sklearn.preprocessing import StandardScaler
 
 import pdb
 
@@ -31,6 +32,11 @@ Author: Jernej Vivod
 
 
 quit = False  # If true at end of script, it will not restart.
+
+
+### Previous cross validation results ###
+prev_cv_res = None
+###
 
 while True:
     ### User choice values ###
@@ -58,6 +64,7 @@ while True:
     usr_sel_type = None           # Select features using weight threshold or number of best to keep
     # ---
     usr_num_feat_keep = None      # Number of best features to keep
+
 
 
     ### Parsing algorithm to use from user ###
@@ -134,6 +141,7 @@ while True:
 
     import datasets.load_dataset as load_dataset
     data = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'data')
+    data = StandardScaler().fit_transform(data)
     target = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'target')
 
 
@@ -202,7 +210,8 @@ while True:
             os.system('clear')
             puts(colored.blue('Select classifier to use:'))
             with indent(4, quote=colored.blue('>>>')):
-                puts(colored.green('Support Vector Machine (1)'))
+                puts(colored.green('Support vector machine (1)'))
+                puts(colored.green('Random forest (2)'))
             classifier_type_usr = input()
             if classifier_type_usr.isdigit() and int(classifier_type_usr) in usr_classifier_type_choices:
                 usr_classifier_type_choice = int(classifier_type_usr)
@@ -277,10 +286,24 @@ while True:
         if usr_classifier_type_choice == 1:
             clf = SVC(kernel='rbf', gamma='auto')
             cv = KFold(n_splits=data_proc.shape[0], shuffle=True)
-            scores = cross_val_score(clf, data_proc, np.ravel(target), cv=cv)
+            scores = cross_val_score(clf, data_proc, np.ravel(target), cv=cv, n_jobs=-1)
             os.system('clear')
             print(colored.yellow('Cross-validataion result: '), end="")
             print(colored.cyan('{0:5f}'.format(np.mean(scores))))
+        elif usr_classifier_type_choice == 2:
+            clf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
+            cv = KFold(n_splits=data_proc.shape[0], shuffle=True)
+            scores = cross_val_score(clf, data_proc, np.ravel(target), cv=cv, n_jobs=-1)
+            os.system('clear')
+            print(colored.yellow('Cross-validataion result: '), end="")
+            print(colored.cyan('{0:5f}'.format(np.mean(scores))))
+        if prev_cv_res:
+            print('(previous Cross-validation result: ', end="")
+            print(colored.cyan('{0:5f}'.format(prev_cv_res)), end="")
+            print(')')
+            prev_cv_res = np.mean(scores)
+        else:
+            prev_cv_res = np.mean(scores)
 
 
     ### Ask user if they want to restart the program ###
