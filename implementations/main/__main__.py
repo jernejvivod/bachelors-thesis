@@ -29,6 +29,9 @@ while True:
     usr_aug_choices = {1, 2, 3, 4}  # Algorithm augmentation choices
     usr_aug_choice = None           # User's augmentation choice
     # ---
+    usr_metric_choices = {1, 2}     # Metric learning type choices
+    usr_metric_choice = None        # User's metric learning type choice
+    # --
     usr_dataset_choices = dict()  # Populated later
     usr_dataset_choice = None     # User's dataset choice
     # ---
@@ -67,7 +70,23 @@ while True:
             usr_aug_choice = int(aug_usr)
             break
 
+    
 
+    ### If user chose metric learning augmentation, ###
+    ### parse type of metric learning to use from user ###
+    
+    if usr_aug_choice == 2:
+        while True:
+            os.system('clear')
+            puts(colored.blue('Select type of metric learning to use:'))
+            with indent(4, quote=colored.blue('>>>')):
+                puts(colored.green('Covariance (1)'))
+                puts(colored.green('PCA (2)'))
+
+            metric_usr = input()
+            if metric_usr.isdigit() and int(metric_usr) in usr_metric_choices:
+                usr_metric_choice = int(metric_usr)
+                break
 
     ### Parse dataset to use from user ###
 
@@ -92,10 +111,6 @@ while True:
     target = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'target')
 
 
-    ## Augmented metric function initialization ##
-    # TODO get dist func
-
-
 
 
     ### 1. part of algorithm initialization  ###
@@ -112,6 +127,20 @@ while True:
         pass
     elif usr_alg_choice == 3:
         pass
+
+
+    ## Augmented metric function initialization ##
+    # TODO get dist func
+    if usr_aug_choice == 1:
+        pass
+    elif usr_aug_choice == 2:
+        if usr_metric_choice == 1:
+            from augmentations.covariance import get_dist_func
+            learned_metric = get_dist_func(data, target)
+            alg = partial(alg, learned_metric_func=learned_metric)
+        if usr_metric_choice == 2:
+            pass
+
 
 
     ### Prompt user to press ENTER to start computations. ###

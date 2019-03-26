@@ -61,7 +61,7 @@ def relief(data, target, m, dist_func, **kwargs):
         # Find nearest hit and nearest miss.
         if 'learned_metric_func' in kwargs:  # If operating in learned metric space.
             dist = partial(kwargs['learned_metric_func'], dist_func, idx)
-            d_same = dist(where(msk)[0])
+            d_same = dist(np.where(msk)[0])
             d_same[idx_subset] = np.inf     # Set distance of sampled example to itself to infinity.
             d_other = dist(np.where(~msk)[0])
             closest_same = data[msk, :][d_same.argmin(), :]
