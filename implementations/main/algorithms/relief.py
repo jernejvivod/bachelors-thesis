@@ -35,8 +35,8 @@ def relief(data, target, m, dist_func, **kwargs):
     def _update_weights(data, e, closest_same, closest_other, weights, max_f_vals, min_f_vals):
         for t in np.arange(data.shape[1]):
             # Update weights
-            weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/(max_f_vals[t] - min_f_vals[t]))/m + \
-                (np.abs(e[t] - closest_other[t])/(max_f_vals[t] - min_f_vals[t]))/m
+            weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
+                (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
 
         return weights  # Return updated weights
 
