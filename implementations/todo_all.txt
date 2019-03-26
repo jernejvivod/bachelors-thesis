@@ -2,3 +2,5 @@
 - Write sheet for ReliefF
 - Write sheet for Iterative Relief
 - Compare with other methods of feature selection
+- Imlement feature ranking with recursive feature elimination (see sklearn RFE).
+- Compare with feature ranking using random forests, etc.

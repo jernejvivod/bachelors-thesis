@@ -1,8 +1,7 @@
-0. Clean up folder.
-1. Implement a library of metric learning algorithms.
+1. Implement a library of metric learning algorithms.   #
 2. Identify and implement other RBAs that could be implemented.
-3. Construct framework for evaluating algorithms and metrics (main python program with CLI)
-4. Get datasets and construct sample artificial datasets. Use correlation coefficient to evaluate performance on artificial datasets.
+3. Get datasets and construct sample artificial datasets. Use correlation coefficient to evaluate performance on artificial datasets.
+4. Compare RBA weights/rankings to feature selection using random forests and other methods.
 
-5. Appendix... Using RBAs in ensemble learning.
+Appendix... Using RBAs in ensemble learning.
 

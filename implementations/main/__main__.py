@@ -7,20 +7,21 @@ from functools import partial
 import numpy as np
 
 ## Classifier imports ###
-from sklearn.neural_network import MLPClassifier  # 1
-from sklearn.neighbors import KNeighborsClassifier  # 2
-from sklearn.svm import SVC  # 3
-from sklearn.gaussian_process import GaussianProcessClassifier  # 4
-from sklearn.gaussian_process.kernels import RBF  # 5
-from sklearn.tree import DecisionTreeClassifier  # 6
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier  # 7
-from sklearn.naive_bayes import GaussianNB  # 8
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis  # 9
+from sklearn.svm import SVC  # 1
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier  # 2, 3
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.preprocessing import StandardScaler
 
 import pdb
+
 
 """
 Script that provides a simple user interface for exploring various versions of RELIEF based
@@ -34,7 +35,7 @@ Author: Jernej Vivod
 quit = False  # If true at end of script, it will not restart.
 
 
-### Previous cross validation results ###
+### Previous cross validation result ###
 prev_cv_res = None
 ###
 
@@ -56,7 +57,7 @@ while True:
     # ---
     usr_run_classifier = None     # Run classifier or not
     # ---
-    usr_classifier_type_choices = {1, 2, 3, 4, 5, 6, 7, 8, 9}  # User's classifier type choices
+    usr_classifier_type_choices = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}  # User's classifier type choices
     usr_classifier_type_choice = None  # User's classifier type choice
     # ---
     usr_thresh_choice = None      # Threshold choice
@@ -160,19 +161,23 @@ while True:
 
     ## Augmented metric function initialization ##
     if usr_aug_choice == 1:
-        pass
+        os.system('clear')
     elif usr_aug_choice == 2:
         if usr_metric_choice == 1:
             from augmentations.covariance import get_dist_func
-            learned_metric = get_dist_func(data, target)
-            alg = partial(alg, learned_metric_func=learned_metric)
+            try:
+                learned_metric = get_dist_func(data, target)
+                alg = partial(alg, learned_metric_func=learned_metric)
+                os.system('clear')
+            except np.linalg.LinAlgError as e:
+                os.system('clear')
+                print(colored.red('Could not apply augmentation - matrix singular or not positive definite.'))
         if usr_metric_choice == 2:
             pass
 
 
 
     ### Prompt user to press ENTER to start computations. ###
-    os.system('clear')
     puts(colored.yellow('Press ENTER to start'))
     input()
 
@@ -194,6 +199,7 @@ while True:
     while True:
         puts(colored.blue('Do you want to run a classifier on the preprocessed dataset? (y/n) '))
         run_classifier_usr = input()
+        os.system('clear')
         if run_classifier_usr == 'y':
             usr_run_classifier = True
             break
@@ -228,8 +234,8 @@ while True:
         while True:
             puts(colored.blue('Select weight threshold (1) or number of best features to keep (2)?'))
             sel_type_usr = input()
+            os.system('clear')
             if sel_type_usr.isdigit() and int(sel_type_usr) in {1, 2}:
-                os.system('clear')
                 usr_sel_type = int(sel_type_usr)
                 break
             else:
@@ -240,6 +246,7 @@ while True:
                 print(colored.blue('Select a feature weight threshold from '), end="")
                 print(colored.yellow('[{0:.5f}, {1:.5f}]'.format(np.min(weights), np.max(weights))))
                 thresh_usr = input()
+                os.system('clear')
                 try:
                     usr_thresh_choice = float(thresh_usr)
                     remaining_feat = np.sum(weights >= usr_thresh_choice)
@@ -267,6 +274,7 @@ while True:
                 print(colored.yellow('[{0}, {1}]'.format(1, np.max(rank)+1)), end="")
                 print(colored.blue('): '))
                 num_feat_keep_usr = input()
+                os.system('clear')
                 if num_feat_keep_usr.isdigit() and int(num_feat_keep_usr) in range(1, np.max(rank)+2):
                     usr_num_feat_keep = int(num_feat_keep_usr)
                     break
@@ -310,6 +318,7 @@ while True:
 
     while True:
         restart = input(colored.yellow('Restart? (y/n) '))
+        os.system('clear')
         if restart == 'y':
             break
         if restart == 'n':
