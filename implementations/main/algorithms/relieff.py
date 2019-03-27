@@ -1,6 +1,7 @@
 import numpy as np
-import pdb
 import numba as nb
+from functools import partial
+import pdb
 
 def relieff(data, target, m, k, dist_func, **kwargs):
     """Compute feature scores using ReliefF algorithm
@@ -61,7 +62,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
 
     # Get all unique classes.
     classes = np.unique(target)
-
+    pdb.set_trace()
     # Get probabilities of classes in training set.
     p_classes = np.vstack(np.unique(target, return_counts=True)).T
     p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
@@ -93,7 +94,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
             closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
         else:
             # Find k nearest examples from same class.
-            distances_same = dist_func(target[idx], data[target == target[idx], :])
+            distances_same = dist_func(e, data[target == target[idx], :])
 
             # Set distance of sampled example to itself to infinity.
             distances_same[idx_class] = np.inf
@@ -115,7 +116,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
                     distances_cl = dist(np.where(target == cl)[0])
                 else:
                     # Get closest k examples with class cl
-                    distances_cl = dist_func(target[idx], data[target == cl, :])
+                    distances_cl = dist_func(e, data[target == cl, :])
                 # Get indices of closest exmples from class cl
                 idx_closest_cl = np.argpartition(distances_cl, k)[:k]
 
@@ -146,4 +147,4 @@ def relieff(data, target, m, k, dist_func, **kwargs):
 if __name__ == '__main__':
     test_data = np.loadtxt('rba_test_data2.m')
     data, target = (lambda x: (x[:, :-1], x[:, -1]))(test_data)
-    rank, weights = relieff(data, target, test_data.shape[0], 5, lambda x1, x2: np.sum(np.abs(x1 - x2), 1));
+    rank, weights = relieff(data, target, test_data.shape[0], 5, lambda x1, x2: np.sum(np.abs(x1 - x2)**2, 1)**(1/2));

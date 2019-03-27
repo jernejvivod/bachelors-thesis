@@ -144,19 +144,23 @@ while True:
     data = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'data')
     data = StandardScaler().fit_transform(data)
     target = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'target')
+    target = np.ravel(target).astype(np.float)
 
 
 
 
     ### Basic algorithm initialization  ###
 
+    # TODO: All keyword args
     if usr_alg_choice == 1:
         from algorithms.relief import relief  # Partially pass parameters
-        alg = partial(relief, data, target, data.shape[0], lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        alg = partial(relief, data, target, data.shape[0], lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2))
     elif usr_alg_choice == 2:
-        pass
+        from algorithms.relieff import relieff # Partially pass parameters
+        alg = partial(relieff, data, target, data.shape[0], 5, lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2))
     elif usr_alg_choice == 3:
-        pass
+        from algorithms.iterative_relief import iterative_relief
+        alg = partial(iterative_relief, data, target, data.shape[0], 1, lambda x1, x2, w: np.sum(np.abs(w*(x1 - x2))**2, 1)**(1/2), max_iter=100)
 
 
     ## Augmented metric function initialization ##
@@ -182,6 +186,7 @@ while True:
     input()
 
     ### Call and time initialize algorithm ###
+    pdb.set_trace()
     rank, weights = alg()
 
 
@@ -294,14 +299,14 @@ while True:
         if usr_classifier_type_choice == 1:
             clf = SVC(kernel='rbf', gamma='auto')
             cv = KFold(n_splits=data_proc.shape[0], shuffle=True)
-            scores = cross_val_score(clf, data_proc, np.ravel(target), cv=cv, n_jobs=-1)
+            scores = cross_val_score(clf, data_proc, target, cv=cv, n_jobs=-1)
             os.system('clear')
             print(colored.yellow('Cross-validataion result: '), end="")
             print(colored.cyan('{0:5f}'.format(np.mean(scores))))
         elif usr_classifier_type_choice == 2:
             clf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
             cv = KFold(n_splits=data_proc.shape[0], shuffle=True)
-            scores = cross_val_score(clf, data_proc, np.ravel(target), cv=cv, n_jobs=-1)
+            scores = cross_val_score(clf, data_proc, target, cv=cv, n_jobs=-1)
             os.system('clear')
             print(colored.yellow('Cross-validataion result: '), end="")
             print(colored.cyan('{0:5f}'.format(np.mean(scores))))
