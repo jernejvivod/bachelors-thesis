@@ -1,6 +1,5 @@
 import numpy as np
-
-import pdb
+from functools import partial
 
 class It_node:
     def __init__(self, l, r, split_attr, split_val, level, mass_comp=0):
@@ -179,7 +178,22 @@ class MeDissimilarity:
         """
         self.get_n_random_itrees(num_itrees, self.data.shape[0])
         self.get_node_masses()
-        return lambda x1, x2, **kwargs : self.mass_based_dissimilarity(x1, x2)
+
+        def dissim_func(x1, x2):
+            if x1.ndim == 1 and x2.ndim == 1:
+                return self.mass_based_dissimilarity(x1, x2)
+            elif x1.ndim == 1 and x2.ndim == 2:
+                dissim_part = partial(self.mass_based_dissimilarity, x1)
+                return np.apply_along_axis(dissim_part, 1, x2)
+            elif x1.ndim == 2 and x2.ndim == 1:
+                dissim_part = partial(self.mass_based_dissimilarity, x2)
+                return np.apply_along_axis(self.mass_based_dissimilarity, 1, x1)
+            elif x1.ndim == 2 and x2.ndim == 2:
+                res = np.array(x1.shape[0], dtype=float)
+                for idx, (r1, r2) in enumerate(zip(x1, x2)):
+                    res[idx] = self.mass_based_dissimilarity(r1, r2)
+
+        return dissim_func
 
 # If running as main script, perform simple test.
 if __name__ == "__main__":
@@ -189,6 +203,5 @@ if __name__ == "__main__":
     examples = sio.loadmat('./data/examples.mat')['examples']
     me = MeDissimilarity(examples)
     dissim_func = me.get_dissim_func(10)
-    pdb.set_trace()
     res = dissim_func(examples[0, :], examples[0, :])
     print(res)

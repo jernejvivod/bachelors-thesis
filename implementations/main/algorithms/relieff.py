@@ -2,7 +2,6 @@ import numpy as np
 import numba as nb
 from scipy.stats import rankdata
 from functools import partial
-import pdb
 
 def relieff(data, target, m, k, dist_func, **kwargs):
     """Compute feature scores using ReliefF algorithm
@@ -63,7 +62,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
 
     # Get all unique classes.
     classes = np.unique(target)
-    pdb.set_trace()
+
     # Get probabilities of classes in training set.
     p_classes = np.vstack(np.unique(target, return_counts=True)).T
     p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])

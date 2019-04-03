@@ -147,23 +147,27 @@ while True:
     target = load_dataset.load(usr_dataset_choices[usr_dataset_choice], 'target')
     target = np.ravel(target).astype(np.float)
 
-
-
-
     ### Basic algorithm initialization  ###
+    if usr_aug_choice == 3:
+        from augmentations.me_dissim import MeDissimilarity
+        me = MeDissimilarity(data)
+        dist_func = me.get_dissim_func(num_itrees=10)
+    else:
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2)
 
     # TODO: All keyword args
     if usr_alg_choice == 1:
         from algorithms.relief import relief  # Partially pass parameters
-        alg = partial(relief, data, target, data.shape[0], lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2))
+        alg = partial(relief, data, target, data.shape[0], dist_func)
     elif usr_alg_choice == 2:
         from algorithms.relieff import relieff # Partially pass parameters
-        alg = partial(relieff, data, target, data.shape[0], 5, lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2))
+        alg = partial(relieff, data, target, data.shape[0], 5, dist_func)
     elif usr_alg_choice == 3:
         from algorithms.iterative_relief import iterative_relief
         alg = partial(iterative_relief, data, target, data.shape[0], 1, lambda x1, x2, w: np.sum(np.abs(w*(x1 - x2))**2, 1)**(1/2), max_iter=100)
     elif usr_alg_choice == 4:
         from algorithms.irelief import irelief
+        # Takes a weighted distance function - override previous dist_func.
         alg = partial(irelief, data, target, lambda w, x1, x2: np.sum(np.abs(w*(x1 - x2)**2))**(1/2), max_iter=100, k_width=2.0, conv_condition=0.0, initial_w_div=data.shape[1])
     elif usr_alg_choice == 5:
         from algorithms.random_sel import rand_sel
@@ -185,7 +189,8 @@ while True:
                 print(colored.red('Could not apply augmentation - matrix singular or not positive definite.'))
         if usr_metric_choice == 2:
             pass
-
+    elif usr_aug_choice == 3:
+        pass  # Already handled when setting distance function.
 
 
     ### Prompt user to press ENTER to start computations. ###
