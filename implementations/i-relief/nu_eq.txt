@@ -1,0 +1,5 @@
+\bar(m)_{n} is defined as the average values of absolute values of vector subtractions.
+\nu_{n} is a scalar. w^{T}\nu is a dot product.
+
+we want to find values of w that will maximize the value of w^{t}\nu.
+Since norm(w) must be equal to 1. The vector that maximizes this value is a unit vector that points in the same direction - \nu/norm(\nu) 

@@ -1,5 +1,6 @@
 import numpy as np
 import numba as nb
+from scipy.stats import rankdata
 from functools import partial
 import pdb
 
@@ -137,7 +138,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
         weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals)
         
         # Create array of feature enumerations based on score.
-        rank = np.argsort(weights, 0)[::-1]
+        rank = rankdata(-weights, method='ordinal')
 
 
     return rank, weights

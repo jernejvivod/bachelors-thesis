@@ -43,7 +43,7 @@ while True:
     ### User choice values ###
 
     # --- 
-    usr_alg_choices = {1, 2, 3}  # Algorithm choices
+    usr_alg_choices = {1, 2, 3, 4, 5}  # Algorithm choices
     usr_alg_choice = None        # User's algorithm choice
     # ---
     usr_aug_choices = {1, 2, 3, 4}  # Algorithm augmentation choices
@@ -77,7 +77,8 @@ while True:
             puts(colored.green('Basic RELIEF (1)'))
             puts(colored.green('RELIEFF (2)'))
             puts(colored.green('Iterative RELIEF (3)'))
-
+            puts(colored.green('I-RELIEF (4)'))
+            puts(colored.green('random feature weighting (5)'))
         alg_usr = input()
         if alg_usr.isdigit() and int(alg_usr) in usr_alg_choices:
             usr_alg_choice = int(alg_usr)
@@ -161,6 +162,12 @@ while True:
     elif usr_alg_choice == 3:
         from algorithms.iterative_relief import iterative_relief
         alg = partial(iterative_relief, data, target, data.shape[0], 1, lambda x1, x2, w: np.sum(np.abs(w*(x1 - x2))**2, 1)**(1/2), max_iter=100)
+    elif usr_alg_choice == 4:
+        from algorithms.irelief import irelief
+        alg = partial(irelief, data, target, lambda w, x1, x2: np.sum(np.abs(w*(x1 - x2)**2))**(1/2), max_iter=100, k_width=2.0, conv_condition=0.0, initial_w_div=data.shape[1])
+    elif usr_alg_choice == 5:
+        from algorithms.random_sel import rand_sel
+        alg = partial(rand_sel, data)
 
 
     ## Augmented metric function initialization ##
@@ -186,7 +193,6 @@ while True:
     input()
 
     ### Call and time initialize algorithm ###
-    pdb.set_trace()
     rank, weights = alg()
 
 
@@ -231,7 +237,6 @@ while True:
 
 
     ### Ask user to set feature threshold ###
-
     if usr_run_classifier:
         os.system('clear')
         feat_sel_set = False
@@ -276,11 +281,11 @@ while True:
         else:
             while True:
                 print(colored.blue('Select number of best features to keep (integer from '), end="")
-                print(colored.yellow('[{0}, {1}]'.format(1, np.max(rank)+1)), end="")
+                print(colored.yellow('[{0}, {1}]'.format(1, np.max(rank))), end="")
                 print(colored.blue('): '))
                 num_feat_keep_usr = input()
                 os.system('clear')
-                if num_feat_keep_usr.isdigit() and int(num_feat_keep_usr) in range(1, np.max(rank)+2):
+                if num_feat_keep_usr.isdigit() and int(num_feat_keep_usr) in range(1, np.max(rank)+1):
                     usr_num_feat_keep = int(num_feat_keep_usr)
                     break
 
@@ -291,7 +296,7 @@ while True:
             msk = weights >= usr_thresh_choice
             data_proc = data[:, msk]
         elif usr_sel_type == 2:  # selection by number of best to keep
-            msk = rank < usr_num_feat_keep
+            msk = rank <= usr_num_feat_keep
             data_proc = data[:, msk]
 
     ### Run classifier on data and display metrics ###

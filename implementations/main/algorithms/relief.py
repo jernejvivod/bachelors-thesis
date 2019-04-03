@@ -1,7 +1,8 @@
 import numpy as np
-import pdb
+from scipy.stats import rankdata
 from functools import partial
 import numba as nb
+import pdb
 
 def relief(data, target, m, dist_func, **kwargs):
     """Compute feature scores using Relief algorithm
@@ -79,8 +80,7 @@ def relief(data, target, m, dist_func, **kwargs):
 
 
     # Create array of feature enumerations based on score.
-    rank = np.argsort(weights, 0)[::-1]
-
+    rank = rankdata(-weights, method='ordinal')
     return rank, weights  # Return vector of feature quality estimates.
 
 

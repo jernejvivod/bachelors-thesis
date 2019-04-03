@@ -1,9 +1,10 @@
-import pdb
 import numpy as np
 from functools import partial
 from scipy.spatial.distance import minkowski
 import sklearn.metrics as sk_metrics
+from scipy.stats import rankdata
 import warnings
+import pdb
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -145,7 +146,7 @@ def iterative_relief(data, target, m, min_incl, dist_func, max_iter, **kwargs):
         feature_weights_prev = feature_weights
 
     # Rank features and return rank and distance weights.
-    rank = np.argsort(dist_weights, 0)[::-1]
+    rank = rankdata(-dist_weights, method='ordinal')
     return rank, dist_weights
 
 
