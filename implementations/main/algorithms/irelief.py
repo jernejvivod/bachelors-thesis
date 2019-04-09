@@ -61,7 +61,7 @@ def get_mean_m_vals(data, classes):
 
     # Go over rows of pairwise differences.
     for idx, r in enumerate(pairwise_diff):
-        mean_m[idx, :] = np.mean(r[classes != classes[idx]], 0)  # Compute mean difference.
+        mean_m[idx, :] = np.mean(r[classes != classes[idx], :], 0)  # Compute mean difference.
     return mean_m
 
 
@@ -88,7 +88,7 @@ def get_mean_h_vals(data, classes):
     for idx, r in enumerate(pairwise_diff):
         msk = classes == classes[idx]  # Get mask of examples from same class.
         msk[idx] = False  # Exclude self from mask.
-        mean_h[idx, :] = np.mean(r[msk], 0)  # Compute mean difference.
+        mean_h[idx, :] = np.mean(r[msk, :], 0)  # Compute mean difference.
 
     return mean_h
 
@@ -156,6 +156,7 @@ def irelief(data, target, dist_func, max_iter, k_width, conv_condition, initial_
     Returns:
         Array[np.float64] -- feature weights
     """
+
     # Intialize convergence indicator and distance weights for features.
     convergence = False 
     dist_weights = np.ones(data.shape[1], dtype=np.float)/initial_w_div

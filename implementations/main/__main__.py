@@ -168,7 +168,7 @@ while True:
     elif usr_alg_choice == 4:
         from algorithms.irelief import irelief
         # Takes a weighted distance function - override previous dist_func.
-        alg = partial(irelief, data, target, lambda w, x1, x2: np.sum(np.abs(w*(x1 - x2)**2))**(1/2), max_iter=100, k_width=2.0, conv_condition=0.0, initial_w_div=data.shape[1])
+        alg = partial(irelief, data, target, lambda w, x1, x2: np.sum(np.abs(w*(x1 - x2))**2)**(1/2), max_iter=100, k_width=2.0, conv_condition=0.0, initial_w_div=data.shape[1])
     elif usr_alg_choice == 5:
         from algorithms.random_sel import rand_sel
         alg = partial(rand_sel, data)

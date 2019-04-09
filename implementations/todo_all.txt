@@ -1,6 +1,5 @@
-- Make functions accept matrix of features and matrix of targets separately
 - Write sheet for ReliefF
 - Write sheet for Iterative Relief
 - Compare with other methods of feature selection
-- Imlement feature ranking with recursive feature elimination (see sklearn RFE).
+- Implement feature ranking with recursive feature elimination (see sklearn RFE).
 - Compare with feature ranking using random forests, etc.
