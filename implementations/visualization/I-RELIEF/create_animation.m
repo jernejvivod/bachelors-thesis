@@ -15,18 +15,13 @@ function [] = create_animation(axes, fgr, pauseBtnHandle, resetBtnHandle, timeou
 	% Author: Jernej Vivod
 
     % load data
-    data = load('rba_test_data2.m');
-
-    % Use deletions
-    use_deletions = 1;
+    data = load('data.mat');
+    data = data.data;
+    target = load('target.mat');
+    target = target.target;
+    
+    plot = true;
 
     % Create animation and display final feature weights.
-    irelief_animation(data, size(data, 1),  @(a, b) minkowski_dist(a, b, 2), 1, axes, fgr, pauseBtnHandle, resetBtnHandle, timeout, use_deletions);
-
-    % Define minkowski function that takes two vectors or matrices
-    % and the parameter p and returns the distance or vector of distances
-    % between the examples.
-    function d = minkowski_dist(a, b, p)
-        d = sum(abs(a - b).^p, 2).^(1/p);
-    end
+    irelief_animation(data, target, @(x1, x2, w) sum(abs(w.*(x1-x2)).^2, 2).^(1/2), 100, 2.0, 0.0, size(data, 1), plot, axes, fgr, pauseBtnHandle, resetBtnHandle, timeout);
 end
