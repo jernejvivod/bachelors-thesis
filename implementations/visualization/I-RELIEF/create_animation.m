@@ -15,11 +15,11 @@ function [] = create_animation(axes, fgr, pauseBtnHandle, resetBtnHandle, timeou
 	% Author: Jernej Vivod
 
     % load data
-    data = load('data.mat');
-    data = data.data;
-    target = load('target.mat');
-    target = target.target;
+    data_raw = load('rba_test_data2.m');
+    data = data_raw(:, 1:end-1);
+    target = data_raw(:, end);
     
+    % Perform plotting.
     plot = true;
 
     % Create animation and display final feature weights.

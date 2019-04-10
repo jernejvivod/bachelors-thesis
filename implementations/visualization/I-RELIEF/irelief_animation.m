@@ -24,7 +24,7 @@ function [rank, weights] = irelief_animation(data, target, dist_func, max_iter, 
         if plot
             % Set axis labels.
             axes.XLabel.String = 'a'; axes.YLabel.String = 'b'; axes.ZLabel.String = "c";
-            % axes.XLim = [0, 1]; axes.YLim = [0, 1]; hold(axes, 'all');
+            axes.XLim = [0, 1]; axes.YLim = [0, 1]; hold(axes, 'all');
             % axis(axes, 'equal');
             % Set pause.
             pause on;
@@ -96,7 +96,8 @@ function [rank, weights] = irelief_animation(data, target, dist_func, max_iter, 
                     for idx2 = 1:size(pairwise_dist, 1)
                         if idx1 ~= idx2
                             [r, g, b] = heatmap_cols(min(pairwise_dist(:)), max(pairwise_dist(:)), pairwise_dist(idx1, idx2));
-                            lines(idx2) = line(axes, [data(idx1, 1), data(idx2, 1)], [data(idx1, 2), data(idx2, 2)], [data(idx1, 3), data(idx2, 3)], 'Color', [r, g, b]/255);
+                            %lines(idx2) = line(axes, [data(idx1, 1), data(idx2, 1)], [data(idx1, 2), data(idx2, 2)], [data(idx1, 3), data(idx2, 3)], 'Color', [r, g, b]/255);
+                            lines(idx2) = plot3(axes, [data(idx1, 1), data(idx2, 1)], [data(idx1, 2), data(idx2, 2)], [data(idx1, 3), data(idx2, 3)], 'Color', [r, g, b]/255, 'LineWidth', 4);
                         end
                     end
                     pause(0.01)
