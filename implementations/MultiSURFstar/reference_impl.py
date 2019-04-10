@@ -1,29 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""
-scikit-rebate was primarily developed at the University of Pennsylvania by:
-    - Randal S. Olson (rso@randalolson.com)
-    - Pete Schmitt (pschmitt@upenn.edu)
-    - Ryan J. Urbanowicz (ryanurb@upenn.edu)
-    - Weixuan Fu (weixuanf@upenn.edu)
-    - and many more generous open source contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial
-portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
-
 from __future__ import print_function
 import numpy as np
 from .surfstar import SURFstar
@@ -46,25 +20,26 @@ class MultiSURFstar(SURFstar):
     def _find_neighbors(self, inst):
         """ Identify nearest as well as farthest hits and misses within radius defined by average distance and standard deviation of distances from target instanace.
         This works the same regardless of endpoint type. """
-        dist_vect = []
-        for j in range(self._datalen):
-            if inst != j:
-                locator = [inst, j]
+        dist_vect = []  # Define array for storing critical neighbours.
+        for j in range(self._datalen):  # Go over examples.
+            if inst != j:   # If example not equal to itself
+                locator = [inst, j]  # Define locator pair and sort it.
                 if inst < j:
                     locator.reverse()
                 dist_vect.append(self._distance_array[locator[0]][locator[1]])
 
-        dist_vect = np.array(dist_vect)
-        inst_avg_dist = np.average(dist_vect)
-        inst_std = np.std(dist_vect) / 2.
-        near_threshold = inst_avg_dist - inst_std
-        far_threshold = inst_avg_dist + inst_std
+        dist_vect = np.array(dist_vect)  # Convert to numpy array.
+        inst_avg_dist = np.average(dist_vect)  # Get average distance of neighbour.
+        inst_std = np.std(dist_vect) / 2.  # Compute standard deviation of distances.
+        near_threshold = inst_avg_dist - inst_std  # Get threshold to consider examples near.
+        far_threshold = inst_avg_dist + inst_std  # Get threshold to consider examples far.
 
+        # Define arrays for storing nearest neighbors.
         NN_near = []
         NN_far = []
-        for j in range(self._datalen):
-            if inst != j:
-                locator = [inst, j]
+        for j in range(self._datalen):  # Go over examples.
+            if inst != j:  # If example not equal to itself
+                locator = [inst, j]  # Define locator pair and sort it.
                 if inst < j:
                     locator.reverse()
                 if self._distance_array[locator[0]][locator[1]] < near_threshold:
@@ -78,10 +53,11 @@ class MultiSURFstar(SURFstar):
         """ Runs nearest neighbor (NN) identification and feature scoring to yield MultiSURF* scores. """
         nan_entries = np.isnan(self._X)
 
-        NNlist = [self._find_neighbors(datalen) for datalen in range(self._datalen)]
-        NN_near_list = [i[0] for i in NNlist]
-        NN_far_list = [i[1] for i in NNlist]
+        NNlist = [self._find_neighbors(datalen) for datalen in range(self._datalen)]  # Get list of nearest neighbors.
+        NN_near_list = [i[0] for i in NNlist] # Get near neighbors of all examples.
+        NN_far_list = [i[1] for i in NNlist]  # Get far neighbors of all examples.
 
+        # Compute MultiSURF* scores.
         scores = np.sum(Parallel(n_jobs=self.n_jobs)(delayed(
             MultiSURFstar_compute_scores)(instance_num, self.attr, nan_entries, self._num_attributes, self.mcmap,
                                           NN_near, NN_far, self._headers, self._class_type, self._X, self._y, self._labels_std, self.data_type)

@@ -1,4 +1,0 @@
-SURF, SURF*, MultiSURF*, MultiSURF
-
-Iterative:
-Iterative Relief, I-RELIEF, TuRF

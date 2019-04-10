@@ -1,29 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""
-scikit-rebate was primarily developed at the University of Pennsylvania by:
-    - Randal S. Olson (rso@randalolson.com)
-    - Pete Schmitt (pschmitt@upenn.edu)
-    - Ryan J. Urbanowicz (ryanurb@upenn.edu)
-    - Weixuan Fu (weixuanf@upenn.edu)
-    - and many more generous open source contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial
-portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
-
 from __future__ import print_function
 import numpy as np
 from sklearn.externals.joblib import Parallel, delayed
@@ -71,32 +45,34 @@ class SURF(ReliefF):
     def _find_neighbors(self, inst, avg_dist):
         """ Identify nearest hits and misses within radius defined by average distance over whole distance array.
         This works the same regardless of endpoint type. """
-        NN = []
+        NN = []  # Get nearest neighbors.
         min_indicies = []
 
-        for i in range(self._datalen):
+        for i in range(self._datalen):  # Go over examples.
             if inst != i:
                 locator = [inst, i]
                 if i > inst:
                     locator.reverse()
                 d = self._distance_array[locator[0]][locator[1]]
-                if d < avg_dist:  # Defining the neighborhood with an average distance radius.
-                    min_indicies.append(i)
-        for i in range(len(min_indicies)):
-            NN.append(min_indicies[i])
-        return np.array(NN, dtype=np.int32)
+                if d < avg_dist:  # if neighbour less than average distance away.
+                    min_indicies.append(i)  # Save its index.
+        for i in range(len(min_indicies)):  # Go over marked neighbors.
+            NN.append(min_indicies[i])  # Append indices to NN list.
+        return np.array(NN, dtype=np.int32)  # Return numpy array of nearest neighbour indices.
 
     def _run_algorithm(self):
         """ Runs nearest neighbor (NN) identification and feature scoring to yield SURF scores. """
-        sm = cnt = 0
+        sm = cnt = 0  # Define commulative counters of distance and length.
         for i in range(self._datalen):
             sm += sum(self._distance_array[i])
             cnt += len(self._distance_array[i])
-        avg_dist = sm / float(cnt)
+        avg_dist = sm / float(cnt)  # Compute average distance.
 
-        nan_entries = np.isnan(self._X)
+        nan_entries = np.isnan(self._X)  # Get nan entries.
 
-        NNlist = [self._find_neighbors(datalen, avg_dist) for datalen in range(self._datalen)]
+        NNlist = [self._find_neighbors(datalen, avg_dist) for datalen in range(self._datalen)]  # Get nearest neighbors.
+
+        # Compute SURF scores.
         scores = np.sum(Parallel(n_jobs=self.n_jobs)(delayed(
             SURF_compute_scores)(instance_num, self.attr, nan_entries, self._num_attributes, self.mcmap,
                                  NN, self._headers, self._class_type, self._X, self._y, self._labels_std, self.data_type)
