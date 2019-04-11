@@ -1,5 +1,12 @@
 import numpy as np
+import numba as nb
 from scipy.stats import rankdata
+from functools import partial
+from nptyping import Array
+from sklearn.metrics import pairwise_distances
+from sklearn.preprocessing import StandardScaler
+
+import pdb
 
 def get_pairwise_distances(data, dist_func, mode):
     """
@@ -38,7 +45,7 @@ def get_pairwise_distances(data, dist_func, mode):
 
 
 # TODO do in a vectorized form for all examples.
-def critical_neighbours(ex_idx : int, dist_mat : Array[np.gloat64]) -> Array[np.float64]:
+def critical_neighbours(ex_idx : int, dist_mat : Array[np.float64]) -> Array[np.float64]:
     """
     Find neighbours of instance with index inst_idx in radius defined by average distance to other examples and the standard deviation
     of the distances to other examples.
@@ -54,7 +61,7 @@ def critical_neighbours(ex_idx : int, dist_mat : Array[np.gloat64]) -> Array[np.
     ex_avg_dist : np.float64 = np.average(dist_mat[ex_idx, msk])  # Get average distance to example with index ex_idx.
     ex_std : np.float64 = np.std(dist_mat[ex_idx, msk]) / 2.0  # Get standard deviation of distances to example with index ex_idx.
     near_thresh : np.float64 = ex_avg_dist - ex_std  # Get threshold for near neighbours.
-    return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)  # Return indices of examples that are considered near neighbours. 
+    return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0]  # Return indices of examples that are considered near neighbours. 
 
 # update_weights: go over features and update weights.
 @nb.njit
@@ -84,17 +91,20 @@ def update_weights(data, e, closest_same, closest_other, weights, weights_mult, 
         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
 
         # Weights update
-        weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
+        weights[t] = weights[t] - penalty/(data.shape[0]*closest_same.shape[0]) + reward/(data.shape[0]*closest_other.shape[0])
 
     # Return updated weights.
     return weights
 
 
-def MultiSURF(data, target, dist_func):
+def MultiSURF(data, target, dist_func, **kwargs):
 
-    # TODO, handle learned metrics.
-    # Compute pairwise distance matrix.
-    dist_mat = get_pairwise_distances(data, dist_func, mode):
+    # Compute weighted pairwise distances (metric or non-metric space).
+    if 'learned_metric_func' in kwargs:
+        dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
+        pairwise_dist = get_pairwise_distances(data, dist_func_learned, mode="index")
+    else:
+        pairwise_dist = get_pairwise_distances(data, dist_func, mode="example")
 
     # Get maximum and minimum values of each feature.
     max_f_vals = np.amax(data[:, :], 0)
@@ -115,25 +125,36 @@ def MultiSURF(data, target, dist_func):
     # indicates whether an examples is a hit or a miss.
     neighbours_map = dict.fromkeys(np.arange(data.shape[0]))
     for ex_idx in np.arange(data.shape[0]):
-        r1 = critical_neighbours(ex_idx, dist_mat)  # Compute indices of neighbours.
+        r1 = critical_neighbours(ex_idx, pairwise_dist)  # Compute indices of neighbours.
         r2 = target[r1] == target[ex_idx]  # Compute whether neighbour hit or miss.
         neighbours_map[ex_idx] = np.vstack((r1, r2)) # Add entry to dictionary.
 
     # Go over all hits and misses and update weights.
     for ex_idx, neigh_data in neighbours_map.items():
-        # TODO compute weights_coefficients
+
         # Get probabilities of classes not equal to class of sampled example.
-        p_classes_other = p_classes[p_classes[:, 0] != target[ex_idx], 1]
-        p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[ex_idx], 1])
-        weights_mult = np.repeat(p_weights, k)  # Weights multiplier vector
+        p_classes_other = p_classes[p_classes[:, 0] != target[ex_idx], :]
+        p_weights = p_classes_other[:, 1]/(1 - p_classes[p_classes[:, 0] == target[ex_idx], 1])
+        class_to_weight = dict(zip(p_classes_other[:, 0], p_weights))
+        classes_other = (target[neigh_data[0]])[np.logical_not(neigh_data[1])]
+        # Compute weights multiplier vector. TODO optional? Not part of original algorithm in paper.
+        weights_mult = np.array([class_to_weight[idx] for idx in classes_other])
 
         # Go over all hits and misses (neighbours) and update weights
         for neigh in neigh_data.T:
-            weights = update_weights(data, data[ex_idx, :], (data[neigh_data[0], :])[neigh_data[1], :],\
-                    (data[neigh_data[0], :])[np.logical_not(neigh_data[1]), :], weights, weights_mult, max_f_vals, min_f_vals)
+            weights = update_weights(data, data[ex_idx, :], (data[neigh_data[0], :])[neigh_data[1] == 1, :],\
+                    (data[neigh_data[0], :])[neigh_data[1] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)
 
     # Rank weights and return.
     # Create array of feature enumerations based on score.
     rank = rankdata(-weights, method='ordinal')
     return rank, weights
 
+
+if __name__ == '__main__':
+    data_raw = np.loadtxt('rba_test_data.m')
+    data = data_raw[:, :-1]
+    scaler = StandardScaler()
+    data = scaler.fit_transform(data)
+    target = data_raw[:, -1]
+    rank, weights = MultiSURF(data, target, lambda x1, x2: np.sum(np.abs(x1 - x2)**2)**(1.0/2.0))
