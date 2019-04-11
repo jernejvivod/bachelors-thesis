@@ -46,13 +46,6 @@ class MultiSURF(SURFstar):
 
         return np.array(NN_near)
 
-    def _find_neighbors2(self, inst_idx, dist_mat):
-        msk = np.arange(dist_mat.shape[1]) != inst_idx  # Get mask that excludes inst_idx.
-        inst_avg_dist = np.average(dist_mat[inst_idx, msk])  # Get average distance to example with index inst_idx.
-        inst_std = np.std(dist_mat[inst_idx, msk]) / 2.0  # Get standard deviation of distances to example with index inst_idx.
-        near_thresh = inst_avg_dist - inst_std  # Get threshold for near neighbors.
-        return np.nonzero(dist_mat[inst_idx, msk] < near_thresh)  # Return indices of examples that are considered near neighbors. 
-
 
     def _run_algorithm(self):
         """ Runs nearest neighbor (NN) identification and feature scoring to yield MultiSURF scores. """
