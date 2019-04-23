@@ -135,9 +135,15 @@ def MultiSURF(data, target, dist_func, **kwargs):
         # Get probabilities of classes not equal to class of sampled example.
         p_classes_other = p_classes[p_classes[:, 0] != target[ex_idx], :]
         p_weights = p_classes_other[:, 1]/(1 - p_classes[p_classes[:, 0] == target[ex_idx], 1])
-        class_to_weight = dict(zip(p_classes_other[:, 0], p_weights))
+
+        # Get classes of miss neighbours.
         classes_other = (target[neigh_data[0]])[np.logical_not(neigh_data[1])]
-        # Compute weights multiplier vector. TODO optional? Not part of original algorithm in paper.
+
+        # Get probabilities of miss classes.
+        u, c = np.unique(classes_other, return_counts=True)
+        class_to_weight = dict(zip(u, c/np.sum(c)))
+        #class_to_weight = dict(zip(p_classes_other[:, 0], p_weights))
+        # Compute weights multiplier vector.
         weights_mult = np.array([class_to_weight[idx] for idx in classes_other])
 
         # Go over all hits and misses (neighbours) and update weights

@@ -1,3 +1,73 @@
+def get_pairwise_distances(data, dist_func, mode):
+    """
+    Compute pairwise distance matrix for examples in training data set.
+
+    Args:
+        data : Array[np.float64] -- Matrix of training examples
+        dist_func -- function that computes distances between examples
+            if mode == 'example' then dist_func : Callable[Array[[np.float64], Array[np.float64l]], np.float64]
+            if mode == 'index' then dist_func: Callable[[int, int], np.float64]
+        mode : str -- if equal to 'example' the distances are computed in standard metric space by computing
+        distances between examples using passed metric function (dist_func). If equal to 'index', the distances
+        are computed in learned metric space. In this case, the metric function (dist_func) takes indices of examples
+        to compare.
+
+    Returns:
+        Pairwise distance matrix : Array[np.float64]
+
+    Raises:
+        ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
+    """
+
+    if mode == "index":
+        # Allocate matrix for distance matrix and compute distances.
+        dist_mat = np.empty((data[0].shape, data[0].shape), dtype=np.float64)
+        for idx1 in np.arange(data.shape[0]):
+            for idx2 in np.arange(idx1, data.shape[0]):
+                dist = dist_func(idx1, idx2)
+                dist_mat[idx1, idx2] = dist
+                dist_mat[idx2, idx1] = dist
+        return dist_mat
+    elif mode == "example":
+       return pairwise_distances(data, metric=dist_func, n_jobs=-1)
+    else:
+        raise ValueError("Unknown mode specifier")
+
+
+# update_weights: go over features and update weights.
+@nb.njit
+def update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
+    # Update MultiSURF weights as in RELIEFF.
+    #
+    # Args:
+    #   data : Arrax[np.float64] -- training examples
+    #   e : Array[np.float64] -- current example
+    #   closest_same : Array[np.float64] -- matrix of hits that pass the threshold
+    #   closest_other : Array[np.float64] -- matrix of misses that pass the threshold
+    #   weights : Array[np.float64] -- feature weights
+    #   weights_mult : Array[np.float64] -- probability multiplication for weights.
+    #   max_f_vals : Array[np.float64] -- maximum feature values
+    #   min_f_vals : Array[np.float64] -- minimum feature values
+    #
+    # Returns:
+    #   Array[np.float64] -- updated feature weights for passed example
+
+    # Go over features.
+    for t in np.arange(data.shape[1]):
+
+        # Penalty term
+        penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
+
+        # Reward term
+        reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
+
+        # Weights update
+        weights[t] = weights[t] - penalty/(data.shape[0]*closest_same.shape[0]) + reward/(data.shape[0]*closest_other.shape[0])
+
+    # Return updated weights.
+    return weights
+
+
 def critical_neighbours(ex_idx : int, dist_mat : Array[np.gloat64]) -> Array[np.float64]:
     """
     Find neighbours of instance with index inst_idx in radius defined by average distance to other examples and the standard deviation
@@ -15,7 +85,94 @@ def critical_neighbours(ex_idx : int, dist_mat : Array[np.gloat64]) -> Array[np.
     ex_avg_dist : np.float64 = np.average(dist_mat[ex_idx, msk])  # Get average distance to example with index ex_idx.
     ex_std : np.float64 = np.std(dist_mat[ex_idx, msk]) / 2.0  # Get standard deviation of distances to example with index ex_idx.
     near_thresh : np.float64 = ex_avg_dist - ex_std  # Get threshold for near neighbours.
+    far_thresh : np.float64 = ex_avg_dist + ex_stf  # Get threshold for far neighbours.
+
+    # Return indices of critical neighbours.
+    return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0], np.nonzero(dist_mat[ex_idx, msk] > far_thresh)[0]
+
+
+def MultiSURFstar(data, target, dist_func, **kwargs):
+
+    # Compute weighted pairwise distances (metric or non-metric space).
+    if 'learned_metric_func' in kwargs:
+        dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
+        pairwise_dist = get_pairwise_distances(data, dist_func_learned, mode="index")
+    else:
+        pairwise_dist = get_pairwise_distances(data, dist_func, mode="example")
+
+    # Get maximum and minimum values of each feature.
+    max_f_vals = np.amax(data[:, :], 0)
+    min_f_vals = np.amin(data[:, :], 0)
+
+    # Get all unique classes.
+    classes = np.unique(target)
+
+    # Get probabilities of classes in training set.
+    p_classes = np.vstack(np.unique(target, return_counts=True)).T
+    p_classes[:, 1] = p_classes[:, 1]/np.sum(p_classes[:, 1])
+
+    # Initialize feature weights.
+    weights = np.zeros(data.shape[1], dtype=float)
+
+    # Compute hits ans misses for each examples (for the two thresholds).
+    # first row represents the indices of neighbors within threshold, the second row
+    # indicates whether an examples is a hit or a miss, the third row represents the indices
+    # of neighbours above the far threshold and the fourth row indicates whether an example is a hit or miss.
+    neighbours_map = dict.fromkeys(np.arange(data.shape[0]))
+    for ex_idx in np.arange(data.shape[0]):
+        r1, r3 = critical_neighbours(ex_idx, pairwise_dist)  # Compute indices of neighbours.
+        r2 = target[r1] == target[ex_idx]  # Compute whether near neighbour hit or miss.
+        r4 = target[r3] == target[ex_idx]  # Compute whether far neighbour hit or miss. 
+        neighbours_map[ex_idx] = np.vstack((r1, r2, r3, r4)) # Add entry to dictionary.
+
+    # Go over all hits and misses and update weights.
+    for ex_idx, neigh_data in neighbours_map.items():
+
+        # Get probabilities of classes not equal to class of sampled example.
+        p_classes_other = p_classes[p_classes[:, 0] != target[ex_idx], :]
+        p_weights = p_classes_other[:, 1]/(1 - p_classes[p_classes[:, 0] == target[ex_idx], 1])
+
+        # Get classes of miss near and far neighbours.
+        classes_other1 = (target[neigh_data[0]])[np.logical_not(neigh_data[1])] # TODO: neigh_data[1, :] ???
+        classes_other2 = (target[neigh_data[2]])[np.logical_not(neigh_data[3])]
+
+        # Get probabilities of miss classes.
+        u, c = np.unique(classes_other1, return_counts=True)
+        class_to_weight1 = dict(zip(u, c/np.sum(c)))
+        u, c = np.unique(classes_other2, return_counts=True)
+        class_to_weight2 = dict(zip(u, c/np.sum(c))) 
+
+        #class_to_weight = dict(zip(p_classes_other[:, 0], p_weights))
+        # Compute weights multiplier vector.
+        weights_mult1 = np.array([class_to_weight1[idx] for idx in classes_other])
+        weights_mult2 = np.array([class_to_weight2[idx] for idx in classes_other])
+
+        # Go over all hits and misses (neighbours) and update weights
+        for neigh in neigh_data.T:  # TODO: neigh_data[1, :] ???
+            weights = update_weights(data, data[ex_idx, :], (data[neigh_data[0], :])[neigh_data[1] == 1, :],\
+                    (data[neigh_data[0], :])[neigh_data[1] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)
+
+            # TODO call again for far neighbours Punish small distances in features for examples with same class.
+
+    # Rank weights and return.
+    # Create array of feature enumerations based on score.
+    rank = rankdata(-weights, method='ordinal')
+    return rank, weights
+
+
+if __name__ == '__main__':
+    data_raw = np.loadtxt('rba_test_data.m')
+    data = data_raw[:, :-1]
+    scaler = StandardScaler()
+    data = scaler.fit_transform(data)
+    target = data_raw[:, -1]
+    rank, weights = MultiSURF(data, target, lambda x1, x2: np.sum(np.abs(x1 - x2)**2)**(1.0/2.0))
+
+    near_thresh : np.float64 = ex_avg_dist - ex_std  # Get threshold for near neighbours.
     far_thresh : np.float64 = ex_avg_dist + ex_std  # Get threshold for far neighbours.
 
     # Return indices of near neighbours and indices of far neighbours.
     return np.nonzero(dist_mat[ex_idx, msk] < near_thresh), np.nonzero(dist_mat[ex_idx, msk] > far_thresh)
+
+
+
