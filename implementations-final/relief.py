@@ -4,16 +4,16 @@ from functools import partial
 from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
 
+import pdb
+
 class Relief(BaseEstimator, TransformerMixin):
 
     # Constructor: initialize learner
-    def __init__(self, n_features_to_select=10, m=100, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), **kwargs):
+    def __init__(self, n_features_to_select=10, m=100, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # Number of features to select
         self.m = m  # Number of examples to sample.
         self.dist_func = dist_func  # distance function to use when searching for nearest neighbours
-        if 'learned_metric_func' in kwargs:  # If operating in learned metric space, initialize learned metric function.
-            self.learned_metric_func = kwargs['learned_metric_func']
-
+        self.learned_metric_func = learned_metric_func  # Learned metric function (is set to None if not using metric learning)
 
     def fit(self, data, target):
         """
@@ -28,7 +28,7 @@ class Relief(BaseEstimator, TransformerMixin):
         """
 
         # If using a learned metric function
-        if hasattr(self, 'learned_metric_func'):
+        if self.learned_metric_func != None:
            self.rank, self.weights = self._relief(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)            
         else:
            self.rank, self.weights = self._relief(data, target, self.m, self.dist_func)
@@ -55,7 +55,6 @@ class Relief(BaseEstimator, TransformerMixin):
     def fit_transform(self, data, target):
         """
         Compute ranks of features and perform feature selection
-
         Args:
             data : Array[np.float64] -- matrix of examples on which to perform feature selection
             target : Array[np.int] -- vector of target values of examples
@@ -107,7 +106,7 @@ class Relief(BaseEstimator, TransformerMixin):
         min_f_vals = np.amin(data, axis=0)
 
         # Sample m examples without replacement.
-        sample_idxs = np.random.choice(np.arange(data.shape[0]), m, replace=False)
+        sample_idxs = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
 
         # Evaluate features using a sample of m examples.
         for idx in sample_idxs:
