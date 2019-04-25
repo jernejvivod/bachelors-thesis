@@ -8,6 +8,8 @@ import pdb
 
 class Relief(BaseEstimator, TransformerMixin):
 
+    """TODO"""
+
     # Constructor: initialize learner
     def __init__(self, n_features_to_select=10, m=100, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # Number of features to select
