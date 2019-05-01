@@ -10,4 +10,4 @@ to 1.7.2019:
 	Evaluations of implemented algorithms.
 
 to 1.8.2019:
-	Finish text.	
+	Finish text.

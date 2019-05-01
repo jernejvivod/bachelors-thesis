@@ -14,7 +14,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
     """ TODO  """
 
-    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select
         self.dist_func = dist_func
         self.learned_metric_func = learned_metric_func
@@ -33,9 +33,9 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         """
 
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._multiSURF(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, self.dist_func, self.max_iter)
+            self.rank, self.weights = self._multiSURF(data, target, self.dist_func)
 
 
     def transform(self, data):
@@ -124,7 +124,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0]  # Return indices of examples that are considered near neighbours. 
 
     # update_weights: go over features and update weights.
-    @nb.njit
+    # @nb.njit
     def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
         """
         Update MultiSURF weights as in RELIEFF.
@@ -160,7 +160,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         return weights
 
 
-    def _MultiSURF(self, data, target, dist_func, **kwargs):
+    def _multiSURF(self, data, target, dist_func, **kwargs):
 
         # Compute weighted pairwise distances (metric or non-metric space).
         if 'learned_metric_func' in kwargs:
