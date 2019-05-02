@@ -24,8 +24,8 @@ import scipy.io as sio
 
 ### LOADING DATASET ######
 
-data = sio.loadmat('datasets/ionosphere/data.mat')['data']
-target = np.ravel(sio.loadmat('datasets/ionosphere/target.mat')['target'])
+data = sio.loadmat('datasets/basic-artificial-1/data.mat')['data']
+target = np.ravel(sio.loadmat('datasets/basic-artificial-1/target.mat')['target'])
 
 ##########################
 
@@ -137,7 +137,7 @@ param_grid_relieff = {
 param_grid_iterative_relief = {
     'iterative_relief__n_features_to_select': np.arange(1, data.shape[1]+1),
     'iterative_relief__dist_func' : [manhattan_w, euclidean_w],
-    'iterative_relief__min_incl' : np.arange(3, 6),
+    'iterative_relief__min_incl' : np.arange(1, 10),
     'iterative_relief__learned_metric_func' : [None, me_dissim_dist_func, nca_dist_func, lda_dist_func, pca_dist_func],
     'classify__kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
 }
@@ -167,15 +167,15 @@ grid_search_relief = GridSearchCV(pipeline_relief, param_grid=param_grid_relief,
 grid_search_relieff = GridSearchCV(pipeline_relieff, param_grid=param_grid_relieff, cv=cv_startegy, verbose=True, n_jobs=-1)
 grid_search_iterative_relief = GridSearchCV(pipeline_iterative_relief, param_grid=param_grid_iterative_relief, cv=cv_startegy, verbose=True)
 grid_search_irelief = GridSearchCV(pipeline_irelief, param_grid=param_grid_irelief, cv=cv_startegy, verbose=True, n_jobs=-1)
-# grid_search_multiSURF = GridSearchCV(pipeline_multiSURF, param_grid=param_grid_multiSURF, cv=cv_startegy, verbose=True, n_jobs=-1)
+#grid_search_multiSURF = GridSearchCV(pipeline_multiSURF, param_grid=param_grid_multiSURF, cv=cv_startegy, verbose=True, n_jobs=-1)
 grid_search_random_selection = GridSearchCV(pipeline_random_selection, param_grid=param_grid_random_selection, cv=cv_startegy, verbose=True, n_jobs=-1)
 
 # Perform grid search for best hyperparameters.
 res_relief = grid_search_relief.fit(data, target)
 res_relieff = grid_search_relieff.fit(data, target)
-# res_iterative_relief = grid_search_iterative_relief.fit(data, target)
+res_iterative_relief = grid_search_iterative_relief.fit(data, target)
 res_irelief = grid_search_irelief.fit(data, target)
-# res_multiSURF = grid_search_multiSURF.fit(data, target)
+res_multiSURF = grid_search_multiSURF.fit(data, target)
 res_random_selection = grid_search_random_selection.fit(data, target)
 
 ##########################

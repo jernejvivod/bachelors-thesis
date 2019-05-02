@@ -23,7 +23,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         self.learned_metric_func = learned_metric_func
         self.n_features_to_select = n_features_to_select
 
-    def min_radius(self, n, data, target, dist_metric):
+    def min_radius(self, n, data, target, dist_metric, mode, **kwargs):
         """Compute minimum radius of hypersphere such that for each example in
         the data matrix as the centre the sphere will contain at least n examples from
         same class and n examples from a different class.
@@ -59,16 +59,19 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
         # If operating in learned metric space.
         if mode == "index":
-            # Allocate matrix for distance matrix and compute distances.
-            dist_mat = np.empty((data.shape[0], data.shape[0]), dtype=np.float64)
-            for idx1 in np.arange(data.shape[0]):
-                for idx2 in np.arange(idx1, data.shape[0]):
-                    dist = dist_metric(idx1, idx2)
-                    dist_mat[idx1, idx2] = dist
-                    dist_mat[idx2, idx1] = dist
-        else:
+           
+            dist_metric_aux = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
+            dist_func = partial(kwargs['learned_metric_func'], dist_metric_aux)
+            dist_func_adapter = lambda x1, x2 : dist_func(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0], np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0])
+
+            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func_adapter, n_jobs=-1, working_memory=0)
+
+        elif mode == "example":
+            dist_func = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
             # Construct distances matrix. Force generation by rows.
-            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_metric, n_jobs=-1, working_memory=0)
+            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func, n_jobs=-1, working_memory=0)
+        else:
+            raise ValueError('Unknown mode specifier {0}'.format(mode))
 
         # Go over examples and compute minimum acceptable radius for each example.
         for k in np.arange(data.shape[0]):
@@ -162,9 +165,9 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         """
         
         if 'learned_metric_func' in kwargs:
-            min_r = self.min_radius(min_incl, data, target, kwargs['learned_metric_func'], mode='index')  # Get minimum acceptable radius using learned metric.
+            min_r = self.min_radius(min_incl, data, target, dist_func, mode='index', learned_metric_func=kwargs['learned_metric_func'])  # Get minimum acceptable radius using learned metric.
         else: 
-            min_r = self.min_radius(min_incl, data, target, dist_func)  # Get minimum acceptable radius.
+            min_r = self.min_radius(min_incl, data, target, dist_func, mode='example')  # Get minimum acceptable radius.
 
         dist_weights = np.ones(data.shape[1], dtype=float)       # Initialize distance weights.  
 
@@ -183,18 +186,28 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             idx_sampled = np.random.choice(data.shape[0], data.shape[0] if m == -1 else m)
 
             # Go over sampled examples.
-            for idx in range(10):
+            for idx in idx_sampled:
 
                 e = data[idx, :]  # Get next sampled example.
 
                 # TODO: compute inclusion using learned metric function if specified
+                if 'learned_metric_func' in kwargs:
+                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(x1, x2, dist_weights), idx)
+                    # Compute hypersphere inclusions and distances to examples within the hypersphere.
+                    distances_same = np.apply_along_axis(dist, 0, np.arange(data.shape[0])[target == target[idx]])
+                    same_in_hypsph = distances_same <= min_r
+                    data_same = (data[target == target[idx], :])[same_in_hypsph, :]
 
-                # Compute hypersphere inclusions and distances to examples within the hypersphere.
-                same_in_hypsph = np.sum((data[target == target[idx], :] - e)**2, 1) <= min_r**2
-                data_same = (data[target == target[idx], :])[same_in_hypsph, :]
+                    distances_other = np.apply_along_axis(dist, 0, np.arange(data.shape[0])[target != target[idx]])
+                    other_in_hypsph = distances_other <= min_r
+                    data_other = (data[target != target[idx]])[other_in_hypsph, :]
+                else:
+                    # Compute hypersphere inclusions and distances to examples within the hypersphere.
+                    same_in_hypsph = np.sum((data[target == target[idx], :] - e)**2, 1) <= min_r**2
+                    data_same = (data[target == target[idx], :])[same_in_hypsph, :]
 
-                other_in_hypsph = np.sum((data[target != target[idx], :] - e)**2, 1) <= min_r**2
-                data_other = (data[target != target[idx]])[other_in_hypsph, :]
+                    other_in_hypsph = np.sum((data[target != target[idx], :] - e)**2, 1) <= min_r**2
+                    data_other = (data[target != target[idx]])[other_in_hypsph, :]
 
                 # Compute distances to examples from same class and other classes.
                 # Get index of next sampled example in group of examples with same class.
