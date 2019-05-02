@@ -130,8 +130,8 @@ param_grid_relief = {
 param_grid_relieff = {
     'relieff__n_features_to_select': np.arange(1, data.shape[1]+1),
     'relieff__dist_func': [manhattan, euclidean],
-    'relieff__learned_metric_func' : [None, me_dissim_dist_func, nca_dist_func, lda_dist_func, pca_dist_func],
-    'classify__kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
+    'relieff__learned_metric_func' : [None, me_dissim_dist_func],#, nca_dist_func, lda_dist_func, pca_dist_func],
+    #'classify__kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
 }
 
 param_grid_iterative_relief = {
@@ -157,7 +157,7 @@ param_grid_multiSURF = {
 }
 
 param_grid_random_selection = {
-    'irelief__n_features_to_select': np.arange(1, data.shape[1]+1),
+    'random_selection__n_features_to_select': np.arange(1, data.shape[1]+1),
     'classify__kernel' : ['linear', 'poly', 'rbf', 'sigmoid'],
 }
 
@@ -171,10 +171,10 @@ grid_search_irelief = GridSearchCV(pipeline_irelief, param_grid=param_grid_ireli
 grid_search_random_selection = GridSearchCV(pipeline_random_selection, param_grid=param_grid_random_selection, cv=cv_startegy, verbose=True, n_jobs=-1)
 
 # Perform grid search for best hyperparameters.
-res_relief = grid_search_relief.fit(data, target)
+# res_relief = grid_search_relief.fit(data, target)
 res_relieff = grid_search_relieff.fit(data, target)
-res_iterative_relief = grid_search_iterative_relief.fit(data, target)
-res_irelief = grid_search_irelief.fit(data, target)
+# res_iterative_relief = grid_search_iterative_relief.fit(data, target)
+# res_irelief = grid_search_irelief.fit(data, target)
 # res_multiSURF = grid_search_multiSURF.fit(data, target)
 res_random_selection = grid_search_random_selection.fit(data, target)
 
