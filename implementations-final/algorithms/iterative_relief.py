@@ -15,12 +15,13 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
     """TODO"""
 
-    def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), max_iter=100, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda x1, x2, w : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
         self.m = m
         self.min_incl = min_incl
         self.dist_func = dist_func
         self.max_iter = max_iter
         self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select
 
     def min_radius(self, n, data, target, dist_metric):
         """Compute minimum radius of hypersphere such that for each example in
@@ -53,8 +54,21 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         # Allocate array for storing minimum acceptable radius for each example in dataset.
         min_r = np.empty(data.shape[0], dtype=float)
 
-        # Construct distances matrix. Force generation by rows.
-        dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_metric, n_jobs=-1, working_memory=0)
+        # Initialize distance matrix.
+        dist_mat = None
+
+        # If operating in learned metric space.
+        if mode == "index":
+            # Allocate matrix for distance matrix and compute distances.
+            dist_mat = np.empty((data.shape[0], data.shape[0]), dtype=np.float64)
+            for idx1 in np.arange(data.shape[0]):
+                for idx2 in np.arange(idx1, data.shape[0]):
+                    dist = dist_metric(idx1, idx2)
+                    dist_mat[idx1, idx2] = dist
+                    dist_mat[idx2, idx1] = dist
+        else:
+            # Construct distances matrix. Force generation by rows.
+            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_metric, n_jobs=-1, working_memory=0)
 
         # Go over examples and compute minimum acceptable radius for each example.
         for k in np.arange(data.shape[0]):
@@ -146,8 +160,12 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         Author: Jernej Vivod
 
         """
+        
+        if 'learned_metric_func' in kwargs:
+            min_r = self.min_radius(min_incl, data, target, kwargs['learned_metric_func'], mode='index')  # Get minimum acceptable radius using learned metric.
+        else: 
+            min_r = self.min_radius(min_incl, data, target, dist_func)  # Get minimum acceptable radius.
 
-        min_r = self.min_radius(min_incl, data, target, 'euclidean')  # Get minimum acceptable radius.
         dist_weights = np.ones(data.shape[1], dtype=float)       # Initialize distance weights.  
 
         # Initialize iteration counter, convergence indicator and
@@ -168,6 +186,8 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             for idx in range(10):
 
                 e = data[idx, :]  # Get next sampled example.
+
+                # TODO: compute inclusion using learned metric function if specified
 
                 # Compute hypersphere inclusions and distances to examples within the hypersphere.
                 same_in_hypsph = np.sum((data[target == target[idx], :] - e)**2, 1) <= min_r**2
