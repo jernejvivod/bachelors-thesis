@@ -32,7 +32,7 @@ def iterative_relief(data, target, m, min_incl, dist_func, max_iter):
 
     """
 
-    min_r = min_radius(min_incl, data, target, 'euclidean')  # Get minimum acceptable radius.
+    min_r = min_radius(min_incl, data, target, 'manhattan')  # Get minimum acceptable radius.
     dist_weights = np.ones(data.shape[1], dtype=float)       # Initialize distance weights.  
 
     # Initialize iteration counter, convergence indicator and
@@ -50,7 +50,7 @@ def iterative_relief(data, target, m, min_incl, dist_func, max_iter):
         idx_sampled = np.random.choice(data.shape[0], m)
 
         # Go over sampled examples.
-        for idx in range(10):
+        for idx in np.arange(10):
 
             e = data[idx, :]  # Get next sampled example.
 
@@ -94,9 +94,9 @@ def iterative_relief(data, target, m, min_incl, dist_func, max_iter):
 # Test
 if __name__ == '__main__':
 
-    def minkowski_distance_w(e1, e2, w, p):
-        return np.sum(np.abs(w*(e1 - e2))**p, 1)**(1/p)
+    import scipy.io as sio
 
-    test_data = np.loadtxt('rba_test_data2.m')
+    data = sio.loadmat('data.mat')['data']
+    target = np.ravel(sio.loadmat('target.mat')['target'])
 
-    rank, weights = iterative_relief(test_data[:, :-1], test_data[:, -1], test_data.shape[0], 1, lambda a, b, w: minkowski_distance_w(a, b, w, 2), 100);
+    rank, weights = iterative_relief(data, target, data.shape[0], 1, lambda x1, x2, w : np.sum(np.abs(w*(x1 - x2)), 1), 100);

@@ -2,8 +2,13 @@ import numpy as np
 import numba as nb
 from scipy.stats import rankdata
 from functools import partial
+import os
 
 from sklearn.base import BaseEstimator, TransformerMixin
+
+from julia import Julia
+jl = Julia(compiled_modules=False)
+
 
 class Relieff(BaseEstimator, TransformerMixin):
 
@@ -14,7 +19,9 @@ class Relieff(BaseEstimator, TransformerMixin):
         self.m = m
         self.k = k
         self.dist_func = dist_func
-        learned_metric_func = learned_metric_func
+        self.learned_metric_func = learned_metric_func
+        script_path = os.path.realpath(__file__) 
+        self.update_weights_jl = jl.include(script_path[:script_path.rfind('/')] + "/update_weights_relieff.jl")
 
 
     def fit(self, data, target):
@@ -33,6 +40,7 @@ class Relieff(BaseEstimator, TransformerMixin):
             self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func)
+        return self
 
 
     def transform(self, data):
@@ -94,7 +102,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
         # update_weights: go over features and update weights.
         @nb.njit
-        def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
+        def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
             for t in np.arange(data.shape[1]):
 
                 # Penalty term
@@ -142,7 +150,7 @@ class Relieff(BaseEstimator, TransformerMixin):
             if 'learned_metric_func' in kwargs:
 
                 # Partially apply distance function.
-                dist = partial(kwargs['learned_metric_func'], dist_func, idx)
+                dist = partial(kwargs['learned_metric_func'], dist_func, int(idx))
 
                 # Compute distances to examples from same class in learned metric space.
                 distances_same = dist(np.where(target == target[idx])[0])
@@ -195,11 +203,22 @@ class Relieff(BaseEstimator, TransformerMixin):
             
 
             # ------ weights update ------
-            weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals)
-            
-            # Create array of feature enumerations based on score.
-            rank = rankdata(-weights, method='ordinal')
+            #weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
+            weights = self.update_weights_jl(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
+       
 
-
+        # Create array of feature enumerations based on score.
+        rank = rankdata(-weights, method='ordinal')
         return rank, weights
+
+# Test
+if __name__ == '__main__':
+    import scipy.io as sio
+
+    data = sio.loadmat('./test_data/data.mat')['data']
+    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
+
+    relieff = Relieff(n_features_to_select=2, m=data.shape[0]).fit(data, target)
+    print("weights: {0}".format(relieff.weights))
+    print("rank: {0}".format(relieff.rank))
 

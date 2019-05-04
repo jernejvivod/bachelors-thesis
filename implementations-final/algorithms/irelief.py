@@ -5,11 +5,9 @@ from scipy.stats import rankdata
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-import pdb
-
 class IRelief(BaseEstimator, TransformerMixin):
     
-    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
         self.n_features_to_select = n_features_to_select
         self.dist_func = dist_func
         self.max_iter = max_iter
@@ -89,17 +87,12 @@ class IRelief(BaseEstimator, TransformerMixin):
         Raises:
             ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
         """
-        if mode == "index": 
+        if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_mat = np.empty((data.shape[0], data.shape[0]), dtype=np.float64)
-            for idx1 in np.arange(data.shape[0]):
-                for idx2 in np.arange(idx1, data.shape[0]):
-                    dist = dist_func(idx1, idx2)
-                    dist_mat[idx1, idx2] = dist
-                    dist_mat[idx2, idx1] = dist
-            return dist_mat
+            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]), int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example": 
-           return pairwise_distances(data, metric=dist_func, n_jobs=-1) 
+            return pairwise_distances(data, metric=dist_func) 
         else:
             raise ValueError("Unknown mode specifier")
 
@@ -233,9 +226,9 @@ class IRelief(BaseEstimator, TransformerMixin):
         iter_count = 0
 
         # Main iteration loop.
-        while iter_count < max_iter and not convergence:
-         
-            # Get weighted distance function.
+        while iter_count < max_iter and not convergence: 
+
+            # weighted distance function
             dist_func_w = partial(dist_func, dist_weights) 
 
             # Compute weighted pairwise distances (metric or non-metric space).
@@ -243,6 +236,7 @@ class IRelief(BaseEstimator, TransformerMixin):
                 dist_func_w_learned = partial(kwargs['learned_metric_func'], dist_func_w)
                 pairwise_dist = self._get_pairwise_distances(data, dist_func_w_learned, mode="index")
             else:
+                # Get weighted distance function.
                 pairwise_dist = self._get_pairwise_distances(data, dist_func_w, mode="example")
 
             # Get gamma values and compute nu.
@@ -266,3 +260,10 @@ class IRelief(BaseEstimator, TransformerMixin):
         # Return feature ranks and last distance weights.
         return rank, dist_weights
 
+if __name__ == "__main__":
+    import scipy.io as sio
+    data = sio.loadmat('./test_data/data.mat')['data']
+    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
+    irelief = IRelief(n_features_to_select=2).fit(data, target)
+    print("weights: {0}".format(irelief.weights))
+    print("rank: {0}".format(irelief.rank))

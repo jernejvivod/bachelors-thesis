@@ -4,7 +4,10 @@ from functools import partial
 from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
 
-import pdb
+import os
+
+from julia import Julia
+jl = Julia(compiled_modules=False)
 
 class Relief(BaseEstimator, TransformerMixin):
 
@@ -16,6 +19,8 @@ class Relief(BaseEstimator, TransformerMixin):
         self.m = m  # Number of examples to sample.
         self.dist_func = dist_func  # distance function to use when searching for nearest neighbours
         self.learned_metric_func = learned_metric_func  # Learned metric function (is set to None if not using metric learning)
+        script_path = os.path.realpath(__file__)
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/update_weights_relief.jl")
 
     def fit(self, data, target):
         """
@@ -91,14 +96,14 @@ class Relief(BaseEstimator, TransformerMixin):
         """
 
         # update_weights: go over features and update weights.
-        @nb.njit
-        def _update_weights(data, e, closest_same, closest_other, weights, max_f_vals, min_f_vals):
-            for t in np.arange(data.shape[1]):
-                # Update weights
-                weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
-                    (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
+        # @nb.njit
+        # def _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals):
+        #     for t in np.arange(data.shape[1]):
+        #         # Update weights
+        #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
+        #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
 
-            return weights  # Return updated weights
+        #     return weights  # Return updated weights
 
         # Initialize all weights to zero.
         weights = np.zeros(data.shape[1], dtype=float)
@@ -135,10 +140,20 @@ class Relief(BaseEstimator, TransformerMixin):
                 closest_other = data[~msk, :][d_other.argmin(), :]
 
             # ------ weights update ------
-            weights = _update_weights(data, e, closest_same, closest_other, weights, max_f_vals, min_f_vals)
+            # weights = _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
 
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')
         return rank, weights  # Return vector of feature quality estimates.
+
+if __name__ == "__main__":
+    import scipy.io as sio 
+
+    data = sio.loadmat('./test_data/data.mat')['data']
+    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
+    relief = Relief(n_features_to_select=2, m=data.shape[0]).fit(data, target)
+    print("weights: {0}".format(relief.weights))
+    print("rank: {0}".format(relief.rank))
 

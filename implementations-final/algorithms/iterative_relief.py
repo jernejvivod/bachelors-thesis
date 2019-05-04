@@ -4,7 +4,6 @@ from scipy.spatial.distance import minkowski
 import sklearn.metrics as sk_metrics
 from scipy.stats import rankdata
 import warnings
-import pdb
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -15,7 +14,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
     """TODO"""
 
-    def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda x1, x2, w : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
         self.m = m
         self.min_incl = min_incl
         self.dist_func = dist_func
@@ -59,12 +58,11 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
         # If operating in learned metric space.
         if mode == "index":
-           
             dist_metric_aux = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
             dist_func = partial(kwargs['learned_metric_func'], dist_metric_aux)
-            dist_func_adapter = lambda x1, x2 : dist_func(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0], np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0])
+            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]), int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
 
-            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func_adapter, n_jobs=-1, working_memory=0)
+            dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func_adapter, working_memory=0)
 
         elif mode == "example":
             dist_func = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
@@ -103,6 +101,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, self.dist_func, self.max_iter)
+        return self
 
 
     def transform(self, data):
@@ -163,7 +162,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         Author: Jernej Vivod
 
         """
-        
+
         if 'learned_metric_func' in kwargs:
             min_r = self.min_radius(min_incl, data, target, dist_func, mode='index', learned_metric_func=kwargs['learned_metric_func'])  # Get minimum acceptable radius using learned metric.
         else: 
@@ -183,7 +182,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
             # Reset feature weights to zero and sample examples.
             feature_weights = np.zeros(data.shape[1], dtype=float)
-            idx_sampled = np.random.choice(data.shape[0], data.shape[0] if m == -1 else m)
+            idx_sampled = np.random.choice(data.shape[0], data.shape[0] if m == -1 else m, replace=False)
 
             # Go over sampled examples.
             for idx in idx_sampled:
@@ -192,13 +191,13 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
                 # TODO: compute inclusion using learned metric function if specified
                 if 'learned_metric_func' in kwargs:
-                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(x1, x2, dist_weights), idx)
+                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2), int(idx))
                     # Compute hypersphere inclusions and distances to examples within the hypersphere.
-                    distances_same = np.apply_along_axis(dist, 0, np.arange(data.shape[0])[target == target[idx]])
+                    distances_same = dist(np.arange(data.shape[0]))[target == target[idx]]
                     same_in_hypsph = distances_same <= min_r
                     data_same = (data[target == target[idx], :])[same_in_hypsph, :]
 
-                    distances_other = np.apply_along_axis(dist, 0, np.arange(data.shape[0])[target != target[idx]])
+                    distances_other = dist(np.arange(data.shape[0]))[target != target[idx]]
                     other_in_hypsph = distances_other <= min_r
                     data_other = (data[target != target[idx]])[other_in_hypsph, :]
                 else:
@@ -212,12 +211,12 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
                 # Compute distances to examples from same class and other classes.
                 # Get index of next sampled example in group of examples with same class.
                 if 'learned_metric_func' in kwargs:
-                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(x1, x2, dist_weights))
+                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2))
                     dist_other = dist(idx, np.where(other_in_hypsph)[0])
                     dist_same = dist(idx, np.where(same_in_hypsph)[0])
                 else:
-                    dist_other = dist_func(e, data_other, dist_weights)
-                    dist_same = dist_func(e, data_same, dist_weights)
+                    dist_other = dist_func(dist_weights, e, data_other)
+                    dist_same = dist_func(dist_weights, e, data_same)
 
                 # *********** Feature Weights Update ***********
                 w_miss = np.maximum(0, 1 - (dist_other**2/min_r**2))   # TODO compare zero to every column value
@@ -233,7 +232,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
                 # **********************************************
 
             # Update distance weights by feature weights.
-            dist_weights = feature_weights
+            dist_weights += feature_weights
 
             # Check convergence.
             if np.sum(np.abs(feature_weights - feature_weights_prev)) < 0.01:
@@ -245,3 +244,10 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         rank = rankdata(-dist_weights, method='ordinal')
         return rank, dist_weights
 
+if __name__ == "__main__":
+    import scipy.io as sio
+    data = sio.loadmat('./test_data/data.mat')['data']
+    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
+    iterative_relief = IterativeRelief(n_features_to_select=2, m=data.shape[0]).fit(data, target)
+    print("weights: {0}".format(iterative_relief.weights))
+    print("rank: {0}".format(iterative_relief.rank))

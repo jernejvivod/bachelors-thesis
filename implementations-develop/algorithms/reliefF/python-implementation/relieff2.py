@@ -32,7 +32,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
 
     # update_weights: go over features and update weights.
     @nb.njit
-    def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
+    def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
         for t in np.arange(data.shape[1]):
 
             # Penalty term
@@ -93,14 +93,14 @@ def relieff(data, target, m, k, dist_func, **kwargs):
             closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
         else:
             # Find k nearest examples from same class.
-            distances_same = dist_func(target[idx], data[target == target[idx], :])
+            distances_same = dist_func(e, data[target == target[idx], :])
 
             # Set distance of sampled example to itself to infinity.
             distances_same[idx_class] = np.inf
 
             # Find closest examples from same class.
-            idxs_closest_same = np.argpartition(distances_same, k)[:k] #
-            closest_same = (data[target == target[idx], :])[idxs_closest_same, :] #
+            idxs_closest_same = np.argpartition(distances_same, k)[:k]
+            closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
 
         # Allocate matrix template for getting nearest examples from other classes.
         closest_other = np.zeros((k * (len(classes) - 1), data.shape[1])) #
@@ -115,7 +115,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
                     distances_cl = dist(np.where(target == cl)[0])
                 else:
                     # Get closest k examples with class cl
-                    distances_cl = dist_func(target[idx], data[target == cl, :])
+                    distances_cl = dist_func(e, data[target == cl, :])
                 # Get indices of closest exmples from class cl
                 idx_closest_cl = np.argpartition(distances_cl, k)[:k]
 
@@ -133,7 +133,7 @@ def relieff(data, target, m, k, dist_func, **kwargs):
         
 
         # ------ weights update ------
-        weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals)
+        weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
         
         # Create array of feature enumerations based on score.
         rank = np.argsort(weights, 0)[::-1]
