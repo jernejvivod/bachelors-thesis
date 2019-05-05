@@ -22,7 +22,8 @@ class Relieff(BaseEstimator, TransformerMixin):
         self.k = k
         self.dist_func = dist_func
         self.learned_metric_func = learned_metric_func
-        self.update_weights_jl = jl.include(sys.path[0] + "/julia-utils/update_weights_relieff.jl")
+        script_path = os.path.abspath(__file__)
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff.jl")
 
 
     def fit(self, data, target):
@@ -102,21 +103,21 @@ class Relieff(BaseEstimator, TransformerMixin):
         """
 
         # update_weights: go over features and update weights.
-        @nb.njit
-        def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
-            for t in np.arange(data.shape[1]):
+        # @nb.njit
+        # def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
+        #     for t in np.arange(data.shape[1]):
 
-                # Penalty term
-                penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
+        #         # Penalty term
+        #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
 
-                # Reward term
-                reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
+        #         # Reward term
+        #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
 
-                # Weights update
-                weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
+        #         # Weights update
+        #         weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
 
-            # Return updated weights.
-            return weights
+        #     # Return updated weights.
+        #     return weights
 
 
 
@@ -205,7 +206,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
             # ------ weights update ------
             #weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
-            weights = self.update_weights_jl(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
        
 
         # Create array of feature enumerations based on score.

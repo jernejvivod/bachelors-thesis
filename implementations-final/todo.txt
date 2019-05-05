@@ -1,0 +1,1 @@
+write tests for augmentations for each algorithm

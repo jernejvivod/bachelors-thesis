@@ -77,13 +77,14 @@ lda_dist_func.kind = "LDA"
 nca_dist_func = nca.get_dist_func(data, target)
 nca_dist_func.kind = "NCA"
 
-pca_dist_func = pca.get_dist_func(data)  # TODO: test
-pca_dist_func.kind = "PCA"
+#pca_dist_func = pca.get_dist_func(data)  # TODO: test
+#pca_dist_func.kind = "PCA"
 
 # Mass based dissimilarity
 from julia import Julia
 jl = Julia(compiled_modules=False)
-get_dissim_func = jl.include("./augmentations/me_dissim.jl")
+script_path = os.path.abspath(__file__)
+get_dissim_func = jl.include(script_path[:script_path.rfind('/')] + "/augmentations/me_dissim.jl")
 NUM_ITREES = 10
 dissim_func = get_dissim_func(NUM_ITREES, data)
 me_dissim_dist_func = lambda _, i1, i2: dissim_func(i1, i2)
@@ -175,12 +176,12 @@ param_grid_random_selection = {
 
 # Initialize grid search.
 searches = {
-    'grid_search_relief' : GridSearchCV(pipeline_relief, param_grid=param_grid_relief, cv=cv_startegy, verbose=True),
-    'grid_search_relieff' : GridSearchCV(pipeline_relieff, param_grid=param_grid_relieff, cv=cv_startegy, verbose=True),
-    'grid_search_iterative_relief' : GridSearchCV(pipeline_iterative_relief, param_grid=param_grid_iterative_relief, cv=cv_startegy, verbose=True),
-    'grid_search_irelief' : GridSearchCV(pipeline_irelief, param_grid=param_grid_irelief, cv=cv_startegy, verbose=True),
+    'grid_search_relief' : GridSearchCV(pipeline_relief, param_grid=param_grid_relief, cv=cv_startegy, verbose=True, iid=False),
+    'grid_search_relieff' : GridSearchCV(pipeline_relieff, param_grid=param_grid_relieff, cv=cv_startegy, verbose=True, iid=False),
+    'grid_search_iterative_relief' : GridSearchCV(pipeline_iterative_relief, param_grid=param_grid_iterative_relief, cv=cv_startegy, verbose=True, iid=False),
+    'grid_search_irelief' : GridSearchCV(pipeline_irelief, param_grid=param_grid_irelief, cv=cv_startegy, verbose=True, iid=False),
     #grid_search_multiSURF' : GridSearchCV(pipeline_multiSURF, param_grid=param_grid_multiSURF, cv=cv_startegy, verbose=True, n_jobs=-1)
-    'grid_search_random_selection' : GridSearchCV(pipeline_random_selection, param_grid=param_grid_random_selection, cv=cv_startegy, verbose=True)
+    'grid_search_random_selection' : GridSearchCV(pipeline_random_selection, param_grid=param_grid_random_selection, cv=cv_startegy, verbose=True, iid=False)
 }
 
 # Define named tuple used to store algorithm name, result pair.

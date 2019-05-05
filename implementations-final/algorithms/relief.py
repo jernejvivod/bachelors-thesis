@@ -5,7 +5,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
 
 import os
-import sys
 
 from julia import Julia
 jl = Julia(compiled_modules=False)
@@ -20,7 +19,8 @@ class Relief(BaseEstimator, TransformerMixin):
         self.m = m  # Number of examples to sample.
         self.dist_func = dist_func  # distance function to use when searching for nearest neighbours
         self.learned_metric_func = learned_metric_func  # Learned metric function (is set to None if not using metric learning)
-        self._update_weights = jl.include(sys.path[0] + "/julia-utils/update_weights_relief.jl")
+        script_path = os.path.abspath(__file__)
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief.jl")
 
     def fit(self, data, target):
         """
