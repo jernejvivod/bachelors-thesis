@@ -2,7 +2,9 @@ import numpy as np
 import numba as nb
 from scipy.stats import rankdata
 from functools import partial
+
 import os
+import sys
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -20,8 +22,7 @@ class Relieff(BaseEstimator, TransformerMixin):
         self.k = k
         self.dist_func = dist_func
         self.learned_metric_func = learned_metric_func
-        script_path = os.path.realpath(__file__) 
-        self.update_weights_jl = jl.include(script_path[:script_path.rfind('/')] + "/update_weights_relieff.jl")
+        self.update_weights_jl = jl.include(sys.path[0] + "/julia-utils/update_weights_relieff.jl")
 
 
     def fit(self, data, target):
