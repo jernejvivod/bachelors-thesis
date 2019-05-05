@@ -4,6 +4,11 @@ from functools import partial
 from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
 
+from augmentations import covariance, me_dissim
+import augmentations.LDA_custom as lda
+import augmentations.PCA_custom as pca
+import augmentations.NCA as nca
+
 import os
 
 from julia import Julia
@@ -149,11 +154,53 @@ class Relief(BaseEstimator, TransformerMixin):
         return rank, weights  # Return vector of feature quality estimates.
 
 if __name__ == "__main__":
-    import scipy.io as sio 
+    import scipy.io as sio
 
     data = sio.loadmat('./test_data/data.mat')['data']
     target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
+
+    ### LEARNED METRIC FUNCTIONS ###
+
+    # covariance/Mahalanobis distance
+    #covariance_dist_func = covariance.get_dist_func(data, target)
+    #covariance_dist_func.kind = "Mahalanobis distance"
+
+    lda_dist_func = lda.get_dist_func(data, target, n=1)
+    lda_dist_func.kind = "LDA"
+
+    nca_dist_func = nca.get_dist_func(data, target)
+    nca_dist_func.kind = "NCA"
+
+    #pca_dist_func = pca.get_dist_func(data)  # TODO: test
+    #pca_dist_func.kind = "PCA"
+
+    # Mass based dissimilarity
+    from julia import Julia
+    jl = Julia(compiled_modules=False)
+    script_path = os.path.abspath(__file__)
+    get_dissim_func = jl.include(script_path[:script_path.rfind('/')] + "/augmentations/me_dissim.jl")
+    NUM_ITREES = 10
+    dissim_func = get_dissim_func(NUM_ITREES, data)
+    me_dissim_dist_func = lambda _, i1, i2: dissim_func(i1, i2)
+    me_dissim_dist_func.kind = "Mass based dissimilarity"
+
+    #################################
+
+
     relief = Relief(n_features_to_select=2, m=data.shape[0]).fit(data, target)
     print("weights: {0}".format(relief.weights))
     print("rank: {0}".format(relief.rank))
+
+    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=lda_dist_func).fit(data, target)
+    print("weights: {0}".format(relief.weights))
+    print("rank: {0}".format(relief.rank))
+
+    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=nca_dist_func).fit(data, target)
+    print("weights: {0}".format(relief.weights))
+    print("rank: {0}".format(relief.rank))
+
+    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=me_dissim_dist_func).fit(data, target)
+    print("weights: {0}".format(relief.weights))
+    print("rank: {0}".format(relief.rank))
+
 
