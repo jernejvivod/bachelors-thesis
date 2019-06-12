@@ -14,9 +14,12 @@ jl = Julia(compiled_modules=False)
 
 class Relieff(BaseEstimator, TransformerMixin):
 
-    """TODO"""
+    """Sklearn compatible implementation of the ReliefF algorithm
+    
+        Author: Jernej Vivod
+    """
    
-    def __init__(self, n_features_to_select=10, m=100, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select
         self.m = m
         self.k = k
@@ -74,68 +77,63 @@ class Relieff(BaseEstimator, TransformerMixin):
         return self.transform(data)  # Perform feature selection
 
 
+    # update_weights: go over features and update weights.
+    # @nb.njit
+    # def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
+
+    #     for t in np.arange(data.shape[1]):
+
+    #         # Penalty term
+    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
+
+    #         # Reward term
+    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
+
+    #         # Weights update
+    #         weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
+
+    #     # Return updated weights.
+    #     return weights
+
+
     def _relieff(self, data, target, m, k, dist_func, **kwargs):
+
         """Compute feature scores using ReliefF algorithm
 
-        --- Parameters: ---
-
-        data: Matrix containing examples' data as rows 
-
-        target: matrix containing the example's target variable value
-
-        m: Sample size to use when evaluating the feature scores
-
-        k: Number of closest examples from each class to use
-
-        dist_func: function for evaluating distances between examples. The function should acept two
-            examples or two matrices of examples and return 
-        
-        **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance
-        function and indices of two training examples and returns the distance between the examples in the learned
-        metric space.
-            ------
+        Args:
+            data : Array[np.float64] -- Matrix containing examples' data as rows 
+            target : Array[np.int] -- matrix containing the example's target variable value
+            m : int -- Sample size to use when evaluating the feature scores
+            k : int -- Number of closest examples from each class to use
+            dist_func : Callable[[Array[np.float64], Array[np.float64]], Array[np.float64]] -- function for evaluating 
+            distances between examples. The function should acept two examples or two matrices of examples and return the dictances.
+            **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance
+            function and indices of two training examples and returns the distance between the examples in the learned
+            metric space.
 
         Returns:
-        Array of feature enumerations based on the scores, array of feature scores
-
-        Author: Jernej Vivod
+            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
-
-        # update_weights: go over features and update weights.
-        # @nb.njit
-        # def _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
-        #     for t in np.arange(data.shape[1]):
-
-        #         # Penalty term
-        #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
-
-        #         # Reward term
-        #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
-
-        #         # Weights update
-        #         weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
-
-        #     # Return updated weights.
-        #     return weights
-
-
 
         # Initialize all weights to 0.
         weights = np.zeros(data.shape[1], dtype=float)
 
         # Get indices of examples in sample.
         idx_sampled = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
+        
+        # Set m if currently set to signal value -1.
+        m = data.shape[0] if m == -1 else m
 
         # Get maximum and minimum values of each feature.
-        max_f_vals = np.amax(data[:, :], 0)
-        min_f_vals = np.amin(data[:, :], 0)
+        max_f_vals = np.amax(data, 0)
+        min_f_vals = np.amin(data, 0)
 
         # Get all unique classes.
         classes = np.unique(target)
 
         # Get probabilities of classes in training set.
-        p_classes = np.vstack(np.unique(target, return_counts=True)).T
+        p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
         p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
 
 
@@ -202,25 +200,12 @@ class Relieff(BaseEstimator, TransformerMixin):
             # Compute diff sum weights for closest examples from different class.
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
-            
 
             # ------ weights update ------
-            #weights = _update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
             weights = self._update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
        
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')
         return rank, weights
-
-# Test
-if __name__ == '__main__':
-    import scipy.io as sio
-
-    data = sio.loadmat('./test_data/data.mat')['data']
-    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
-
-    relieff = Relieff(n_features_to_select=2, m=data.shape[0]).fit(data, target)
-    print("weights: {0}".format(relieff.weights))
-    print("rank: {0}".format(relieff.rank))
 

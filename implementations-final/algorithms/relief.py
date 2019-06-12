@@ -16,14 +16,20 @@ jl = Julia(compiled_modules=False)
 
 class Relief(BaseEstimator, TransformerMixin):
 
-    """TODO"""
+    """Sklearn compatible implementation of the Relief algorithm
+        
+       Author: Jernej Vivod
+    """
 
     # Constructor: initialize learner
-    def __init__(self, n_features_to_select=10, m=100, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, m=-1, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # Number of features to select
-        self.m = m  # Number of examples to sample.
+        self.m = m  # Number of examples to sample
         self.dist_func = dist_func  # distance function to use when searching for nearest neighbours
         self.learned_metric_func = learned_metric_func  # Learned metric function (is set to None if not using metric learning)
+
+        # Use function written in the Julia programming language to update weights.
+
         script_path = os.path.abspath(__file__)
         self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief.jl")
 
@@ -78,37 +84,35 @@ class Relief(BaseEstimator, TransformerMixin):
         return self.transform(data)  # Perform feature selection
 
 
+    #update_weights: go over features and update weights.
+    # @nb.njit
+    # def _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals):
+    #     for t in np.arange(data.shape[1]):
+    #         # Update weights
+    #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
+    #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
+
+    #     return weights  # Return updated weights
+
+
     def _relief(self, data, target, m, dist_func, **kwargs):
         """Compute feature scores using Relief algorithm
 
         Args: 
-
-            data: matrix containing examples' data as rows
-
-            target: Matrix containing the examples' class values
-
-            m: Sample size to use when evaluating the feature scores
-
-            dist_func: function for evaluating distances between examples. The function should accept two
-            examples or two matrices of examples and return 
-
+            data : Array[np.float64] -- matrix containing examples' data as rows
+            target: Array[np.int] -- Matrix containing the examples' class values
+            m : int --  Sample size to use when evaluating the feature scores
+            dist_func : Callable[[Array[np.float64], Array[np.float64]], Array[np.float64]] -- function for evaluating 
+            distances between examples. The function should accept two examples or two matrices of examples and return
+            the distance between them.
             **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance
             function and indices of two training examples and returns the distance between the examples in the learned
             metric space.
 
         Returns:
-             Array of feature enumerations based on the scores, array of feature scores
+             Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
         """
 
-        # update_weights: go over features and update weights.
-        # @nb.njit
-        # def _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals):
-        #     for t in np.arange(data.shape[1]):
-        #         # Update weights
-        #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
-        #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
-
-        #     return weights  # Return updated weights
 
         # Initialize all weights to zero.
         weights = np.zeros(data.shape[1], dtype=float)
@@ -120,9 +124,13 @@ class Relief(BaseEstimator, TransformerMixin):
         # Sample m examples without replacement.
         sample_idxs = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
 
+        # Set m if currently set to signal value -1.
+        m = data.shape[0] if m == -1 else m
+
+
         # Evaluate features using a sample of m examples.
         for idx in sample_idxs:
-            e = data[idx, :]                                 # Get sample example data.
+            e = data[idx, :]  # Get sampled example data.
             msk = np.array(list(map(lambda x: True if x == target[idx] else False, target)))  # Get mask for examples with same class.
 
             # Get index of sampled example in subset of examples with same class.
@@ -139,68 +147,16 @@ class Relief(BaseEstimator, TransformerMixin):
             else:                                # Else
                 dist = partial(dist_func, e)  # Curry distance function with chosen example data vector.
                 d_same = dist(data[msk, :]) 
-                d_same[idx_subset] = np.inf     # Set distance of sampled example to itself to infinity.
+                d_same[idx_subset] = np.inf  # Set distance of sampled example to itself to infinity.
                 d_other = dist(data[~msk, :])
                 closest_same = data[msk, :][d_same.argmin(), :]
                 closest_other = data[~msk, :][d_other.argmin(), :]
 
             # ------ weights update ------
-            # weights = _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
             weights = self._update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
 
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')
         return rank, weights  # Return vector of feature quality estimates.
-
-if __name__ == "__main__":
-    import scipy.io as sio
-
-    data = sio.loadmat('./test_data/data.mat')['data']
-    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
-
-    ### LEARNED METRIC FUNCTIONS ###
-
-    # covariance/Mahalanobis distance
-    #covariance_dist_func = covariance.get_dist_func(data, target)
-    #covariance_dist_func.kind = "Mahalanobis distance"
-
-    lda_dist_func = lda.get_dist_func(data, target, n=1)
-    lda_dist_func.kind = "LDA"
-
-    nca_dist_func = nca.get_dist_func(data, target)
-    nca_dist_func.kind = "NCA"
-
-    #pca_dist_func = pca.get_dist_func(data)  # TODO: test
-    #pca_dist_func.kind = "PCA"
-
-    # Mass based dissimilarity
-    from julia import Julia
-    jl = Julia(compiled_modules=False)
-    script_path = os.path.abspath(__file__)
-    get_dissim_func = jl.include(script_path[:script_path.rfind('/')] + "/augmentations/me_dissim.jl")
-    NUM_ITREES = 10
-    dissim_func = get_dissim_func(NUM_ITREES, data)
-    me_dissim_dist_func = lambda _, i1, i2: dissim_func(i1, i2)
-    me_dissim_dist_func.kind = "Mass based dissimilarity"
-
-    #################################
-
-
-    relief = Relief(n_features_to_select=2, m=data.shape[0]).fit(data, target)
-    print("weights: {0}".format(relief.weights))
-    print("rank: {0}".format(relief.rank))
-
-    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=lda_dist_func).fit(data, target)
-    print("weights: {0}".format(relief.weights))
-    print("rank: {0}".format(relief.rank))
-
-    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=nca_dist_func).fit(data, target)
-    print("weights: {0}".format(relief.weights))
-    print("rank: {0}".format(relief.rank))
-
-    relief = Relief(n_features_to_select=2, m=data.shape[0], learned_metric_func=me_dissim_dist_func).fit(data, target)
-    print("weights: {0}".format(relief.weights))
-    print("rank: {0}".format(relief.rank))
-
 

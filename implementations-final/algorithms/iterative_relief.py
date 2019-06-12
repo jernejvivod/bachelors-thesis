@@ -9,15 +9,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-
 class IterativeRelief(BaseEstimator, TransformerMixin):
 
     """TODO"""
 
     def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
         self.m = m
-        self.min_incl = min_incl
-        self.dist_func = dist_func
+        self.min_incl = min_incl self.dist_func = dist_func
         self.max_iter = max_iter
         self.learned_metric_func = learned_metric_func
         self.n_features_to_select = n_features_to_select
@@ -37,6 +35,10 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         target: Matrix of target variable values
 
         dist_metric: distance metric for distance matrix computation
+
+        mode: equal to 'index' if selecting examples by their index and equal to 'example' if passing in explicit examples.
+
+        **kwargs: argument with keyword learned_metric_func can contain a learned metric function.
 
         (see documentation on function pairwise_distances from scikit-learn for 
         valid distance metric specifiers)
@@ -189,9 +191,10 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
                 e = data[idx, :]  # Get next sampled example.
 
-                # TODO: compute inclusion using learned metric function if specified
+                # Compute inclusion using learned metric function if specified.
                 if 'learned_metric_func' in kwargs:
                     dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2), int(idx))
+
                     # Compute hypersphere inclusions and distances to examples within the hypersphere.
                     distances_same = dist(np.arange(data.shape[0]))[target == target[idx]]
                     same_in_hypsph = distances_same <= min_r
