@@ -70,7 +70,7 @@ class TestRelief(unittest.TestCase):
         relief = Relief(n_features_to_select=2, m=data.shape[0])
         relief = relief.fit(data, target)
 
-        # Get results of method.
+        # Get results of methods.
         res_rank = relief.rank
         res_weights = np.round(relief.weights, 5)
 
@@ -146,7 +146,31 @@ class TestRelieff(unittest.TestCase):
 
     # Test relieff algorithm
     def test_relieff(self):
-        pass
+
+        # Training examples
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [3.41438, 4.03548, 7.88157],
+                         [2.01185, 0.84564, 6.16909],
+                         [2.79316, 1.71541, 2.97578],
+                         [3.22177, 0.16564, 5.79036],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Class values
+        target = np.array([1, 2, 2, 1, 2, 1])
+
+        relieff = Relieff(n_features_to_select=2, k=2, m=data.shape[0])
+        relieff = relieff.fit(data, target)
+
+        # Get results of methods.
+        res_rank = relieff.rank
+        res_weights = np.round(relieff.weights, 5)
+
+        # Results computed by hand.
+        correct_res_rank = np.array([2, 3, 1])
+        correct_res_weights = np.array([-0.19887, -0.23507,  0.00803])
+
+        self.assertSequenceEqual(res_rank.tolist(), correct_res_rank.tolist())
+        self.assertSequenceEqual(res_weights.tolist(), correct_res_weights.tolist())
 
 #########################################################
 #
