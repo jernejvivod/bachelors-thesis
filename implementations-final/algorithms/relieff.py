@@ -25,6 +25,8 @@ class Relieff(BaseEstimator, TransformerMixin):
         self.k = k
         self.dist_func = dist_func
         self.learned_metric_func = learned_metric_func
+
+        # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
         self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff.jl")
 
