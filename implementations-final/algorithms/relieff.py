@@ -14,7 +14,7 @@ jl = Julia(compiled_modules=False)
 
 class Relieff(BaseEstimator, TransformerMixin):
 
-    """Sklearn compatible implementation of the ReliefF algorithm
+    """sklearn compatible implementation of the ReliefF algorithm
     
         Author: Jernej Vivod
     """

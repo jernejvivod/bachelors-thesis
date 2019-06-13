@@ -11,44 +11,41 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class IterativeRelief(BaseEstimator, TransformerMixin):
 
-    """TODO"""
+    """sklearn compatible implementation of the iterative relief algorithm.
 
-    def __init__(self, n_features_to_select=10,  m=100, min_incl=3, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
-        self.m = m
-        self.min_incl = min_incl self.dist_func = dist_func
-        self.max_iter = max_iter
-        self.learned_metric_func = learned_metric_func
-        self.n_features_to_select = n_features_to_select
+        Author: Jernej Vivod
+    """
+
+    def __init__(self, n_features_to_select=10,  m=-1, min_incl=3, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
+        self.m = m  # sample size
+        self.min_incl = min_incl  # minimal number of examples from each class to include in hypersphere
+        self.dist_func = dist_func  # metric function to measure distance between examples
+        self.max_iter = max_iter  # maximal number of iterations
+        self.learned_metric_func = learned_metric_func  # learned metric function
+        self.n_features_to_select = n_features_to_select  # number of best features to select
 
     def min_radius(self, n, data, target, dist_metric, mode, **kwargs):
-        """Compute minimum radius of hypersphere such that for each example in
+        """
+        Compute minimum radius of hypersphere such that for each example in
         the data matrix as the centre the sphere will contain at least n examples from
         same class and n examples from a different class.
 
-        --- Parameters: ---
+        Args:
+            n : int -- minimum number of examples from same class and different class a hypersphere with centre in
+            each example in the dataset should contain
 
-        n: minimum number of examples from same class and different class a hypersphere with centre in
-        each example in the dataset should contain
+            data : Array[np.float64] -- Matrix containing examples' features as rows
 
-        data: Matrix containing examples' features as rows
+            target : Array[np.int] Matrix of target variable values
 
-        target: Matrix of target variable values
+            dist_metric : Callable[[Array[np.float64], Array[np.float64]], np.float64] -- distance metric for distance matrix computation
 
-        dist_metric: distance metric for distance matrix computation
+            mode : str -- equal to 'index' if selecting examples by their index and equal to 'example' if passing in explicit examples.
 
-        mode: equal to 'index' if selecting examples by their index and equal to 'example' if passing in explicit examples.
-
-        **kwargs: argument with keyword learned_metric_func can contain a learned metric function.
-
-        (see documentation on function pairwise_distances from scikit-learn for 
-        valid distance metric specifiers)
-
-        ------
+            **kwargs -- argument with keyword learned_metric_func can contain a learned metric function.
 
         Returns:
-        Minimum acceptable radius of the hypersphere
-
-        Author: Jernej Vivod
+        np.float64 : Minimum acceptable radius of the hypersphere
 
         """
 
@@ -63,19 +60,16 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             dist_metric_aux = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
             dist_func = partial(kwargs['learned_metric_func'], dist_metric_aux)
             dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]), int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
-
             dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func_adapter, working_memory=0)
-
-        elif mode == "example":
+        elif mode == "example":  # else
             dist_func = lambda x1, x2 : dist_metric(np.ones(data.shape[1]), x1[np.newaxis], x2[np.newaxis])
-            # Construct distances matrix. Force generation by rows.
             dist_mat = sk_metrics.pairwise_distances_chunked(data, metric=dist_func, n_jobs=-1, working_memory=0)
         else:
             raise ValueError('Unknown mode specifier {0}'.format(mode))
 
         # Go over examples and compute minimum acceptable radius for each example.
         for k in np.arange(data.shape[0]):
-            dist_from_e = next(dist_mat)[0]  # Get next row of distances matrix
+            dist_from_e = next(dist_mat)[0]  # Get next row of distances matrix.
             msk = target == target[k]        # Get mask for examples from same class.
             dist_same = dist_from_e[msk]     # Get minimum distance that includes n examples from same class.
             dist_diff = dist_from_e[~msk]    # Get minimum distance that includes n examples from different class.
@@ -139,35 +133,35 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
     def _iterative_relief(self, data, target, m, min_incl, dist_func, max_iter, **kwargs):
         """Compute feature ranks and scores using Iterative Relief algorithm
 
-        --- Parameters: ---
+        Args:
+            data : Array[np.float64] -- Matrix containing examples' features in rows
 
-        data: Matrix containing examples' features in rows
+            target : Array[np.int] Matrix containing the target variable values
 
-        target: Matrix containing the target variable values
+            m : int --  Sample size to use when evaluating the feature scores
 
-        m: Sample size to use when evaluating the feature scores
+            min_incl : int -- the minimum number of examples from same and other 
+            classes that a hypersphere centered at each examples should contain.
 
-        min_incl: the minimum number of examples from same and other 
-        classes that a hypersphere centered at each examples should contain.
+            dist_func : Callable[[Array[np.float64], Array[np.float64], Array[np.float64]], np.float64] -- 
+            distance function for evaluating distance between examples. 
+            The function should be able to take two matrices of examples and return a vector of distances
+            between the examples. The distance function should accept a weights parameter.
 
-        dist_func: distance function for evaluating distance between examples. 
-        The function should be able to take two matrices of examples and return a vector of distances
-        between the examples. The distance function should accept a weights parameter.
+            max_iter : int -- Maximum number of iterations to compute
 
-        max_iter: Maximum number of iterations to compute
-
-        ------
 
         Returns:
-        Array of feature enumerations based on the scores, array of feature scores
+        Array[np.int] -- Array of feature enumerations based on the scores
+        Array[np.float64] -- array of feature scores
 
         Author: Jernej Vivod
-
         """
 
+        # If operating in learned metric space:
         if 'learned_metric_func' in kwargs:
             min_r = self.min_radius(min_incl, data, target, dist_func, mode='index', learned_metric_func=kwargs['learned_metric_func'])  # Get minimum acceptable radius using learned metric.
-        else: 
+        else:  # else
             min_r = self.min_radius(min_incl, data, target, dist_func, mode='example')  # Get minimum acceptable radius.
 
         dist_weights = np.ones(data.shape[1], dtype=float)       # Initialize distance weights.  
@@ -186,6 +180,10 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             feature_weights = np.zeros(data.shape[1], dtype=float)
             idx_sampled = np.random.choice(data.shape[0], data.shape[0] if m == -1 else m, replace=False)
 
+            # Set m if currently set to signal value -1.
+            m = data.shape[0] if m == -1 else m
+
+
             # Go over sampled examples.
             for idx in idx_sampled:
 
@@ -196,11 +194,11 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
                     dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2), int(idx))
 
                     # Compute hypersphere inclusions and distances to examples within the hypersphere.
-                    distances_same = dist(np.arange(data.shape[0]))[target == target[idx]]
+                    distances_same = dist(np.arange(data.shape[0]))[target == target[idx]]  # Distances to examples from same class.
                     same_in_hypsph = distances_same <= min_r
                     data_same = (data[target == target[idx], :])[same_in_hypsph, :]
 
-                    distances_other = dist(np.arange(data.shape[0]))[target != target[idx]]
+                    distances_other = dist(np.arange(data.shape[0]))[target != target[idx]]  # Distances to examples with different classes.
                     other_in_hypsph = distances_other <= min_r
                     data_other = (data[target != target[idx]])[other_in_hypsph, :]
                 else:
@@ -247,10 +245,3 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         rank = rankdata(-dist_weights, method='ordinal')
         return rank, dist_weights
 
-if __name__ == "__main__":
-    import scipy.io as sio
-    data = sio.loadmat('./test_data/data.mat')['data']
-    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
-    iterative_relief = IterativeRelief(n_features_to_select=2, m=data.shape[0]).fit(data, target)
-    print("weights: {0}".format(iterative_relief.weights))
-    print("rank: {0}".format(iterative_relief.rank))

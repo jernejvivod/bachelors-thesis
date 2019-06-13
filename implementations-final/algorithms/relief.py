@@ -16,7 +16,7 @@ jl = Julia(compiled_modules=False)
 
 class Relief(BaseEstimator, TransformerMixin):
 
-    """Sklearn compatible implementation of the Relief algorithm
+    """sklearn compatible implementation of the Relief algorithm
         
        Author: Jernej Vivod
     """
