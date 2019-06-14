@@ -187,47 +187,48 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             # Go over sampled examples.
             for idx in idx_sampled:
 
+                import pdb
+                pdb.set_trace()
+
                 e = data[idx, :]  # Get next sampled example.
+                data_filt = np.vstack((data[:idx, :], data[idx+1:, :]))
+                target_filt = np.delete(target, idx)
 
                 # Compute inclusion using learned metric function if specified.
                 if 'learned_metric_func' in kwargs:
                     dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2), int(idx))
 
                     # Compute hypersphere inclusions and distances to examples within the hypersphere.
-                    distances_same = dist(np.arange(data.shape[0]))[target == target[idx]]  # Distances to examples from same class.
-                    same_in_hypsph = distances_same <= min_r
-                    data_same = (data[target == target[idx], :])[same_in_hypsph, :]
+                    dist_same_all = dist(np.arange(data_filt.shape[0]))[target_filt == target[idx]]  # Distances to examples from same class.
+                    sel = dist_same_all <= min_r
+                    dist_same = dist_same_all[sel]
+                    data_same = (data_filt[target_filt == target[idx], :])[sel, :]
 
-                    distances_other = dist(np.arange(data.shape[0]))[target != target[idx]]  # Distances to examples with different classes.
-                    other_in_hypsph = distances_other <= min_r
-                    data_other = (data[target != target[idx]])[other_in_hypsph, :]
+                    dist_other_all = dist(np.arange(data_filt.shape[0]))[target_filt != target[idx]]  # Distances to examples with different css.
+                    sel = dist_other_all <= min_r
+                    dist_other = dist_other_all[sel]
+                    data_other = (data_filt[target_filt != target[idx], :])[sel, :]
                 else:
                     # Compute hypersphere inclusions and distances to examples within the hypersphere.
-                    same_in_hypsph = np.sum((data[target == target[idx], :] - e)**2, 1) <= min_r**2
-                    data_same = (data[target == target[idx], :])[same_in_hypsph, :]
+                    dist_same_all = dist_func(dist_weights, data_filt[target_filt == target[idx], :], e)  # Distances to examples from same class.
+                    sel = dist_same_all <= min_r
+                    dist_same = dist_same_all[sel]
+                    data_same = (data_filt[target_filt == target[idx]])[sel, :]
 
-                    other_in_hypsph = np.sum((data[target != target[idx], :] - e)**2, 1) <= min_r**2
-                    data_other = (data[target != target[idx]])[other_in_hypsph, :]
-
-                # Compute distances to examples from same class and other classes.
-                # Get index of next sampled example in group of examples with same class.
-                if 'learned_metric_func' in kwargs:
-                    dist = partial(kwargs['learned_metric_func'], lambda x1, x2: dist_func(dist_weights, x1, x2))
-                    dist_other = dist(idx, np.where(other_in_hypsph)[0])
-                    dist_same = dist(idx, np.where(same_in_hypsph)[0])
-                else:
-                    dist_other = dist_func(dist_weights, e, data_other)
-                    dist_same = dist_func(dist_weights, e, data_same)
+                    dist_other_all = dist_func(dist_weights, data_filt[target_filt != target[idx], :], e)  # Distances to examples with different class.
+                    sel = dist_other_all <= min_r
+                    dist_other = dist_other_all[sel]
+                    data_other = (data_filt[target_filt != target[idx]])[sel, :]
 
                 # *********** Feature Weights Update ***********
-                w_miss = np.maximum(0, 1 - (dist_other**2/min_r**2))   # TODO compare zero to every column value
+                w_miss = np.maximum(0, 1 - (dist_other**2/min_r**2))
                 w_hit = np.maximum(0, 1 - (dist_same**2/min_r**2))
 
                 numerator1 = np.sum(np.abs(e - data_other) * w_miss[np.newaxis].T, 0)
                 denominator1 = np.sum(w_miss) + np.finfo(float).eps
 
                 numerator2 = np.sum(np.abs(e - data_same) * w_hit[np.newaxis].T, 0)
-                denominator2 = np.sum(w_hit) - 1 + np.finfo(float).eps
+                denominator2 = np.sum(w_hit) + np.finfo(float).eps
 
                 feature_weights += numerator1/denominator1 - numerator2/denominator2
                 # **********************************************
