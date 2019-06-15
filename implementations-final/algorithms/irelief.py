@@ -6,15 +6,21 @@ from scipy.stats import rankdata
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class IRelief(BaseEstimator, TransformerMixin):
+
+    """sklearn compatible implementation of the i-relief algorithm
+
+    Author: Jernej Vivod
+
+    """
     
     def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select
-        self.dist_func = dist_func
-        self.max_iter = max_iter
-        self.k_width = k_width
-        self.conv_condition = conv_condition
-        self.initial_w_div = initial_w_div
-        self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.dist_func = dist_func                        # distance function to use
+        self.max_iter = max_iter                          # Maximum number of iterations
+        self.k_width = k_width                            # kernel width
+        self.conv_condition = conv_condition              # convergence condition
+        self.initial_w_div = initial_w_div                # initial weight quotient
+        self.learned_metric_func = learned_metric_func    # learned metric function
 
     def fit(self, data, target):
         """
@@ -34,7 +40,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         else:
            self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, self.conv_condition, self.initial_w_div)
 
-        # Return reference to self
+        # Return reference to self.
         return self
 
 
@@ -87,11 +93,13 @@ class IRelief(BaseEstimator, TransformerMixin):
         Raises:
             ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
         """
+
+        # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
             dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]), int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
-        elif mode == "example": 
+        elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func) 
         else:
             raise ValueError("Unknown mode specifier")
@@ -225,7 +233,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         # Initialize iteration counter.
         iter_count = 0
 
-        # Main iteration loop.
+        ### Main iteration loop. ###
         while iter_count < max_iter and not convergence: 
 
             # weighted distance function
@@ -246,7 +254,7 @@ class IRelief(BaseEstimator, TransformerMixin):
             # Update distance weights.
             dist_weights_nxt = np.clip(nu, a_min=0, a_max=None)/np.linalg.norm(np.clip(nu, a_min=0, a_max=None))
 
-            # Check if convergence criterion satisfied.
+            # Check if convergence criterion satisfied. If not, continue with next iteration.
             if np.sum(np.abs(dist_weights_nxt - dist_weights)) < conv_condition:
                 dist_weights = dist_weights_nxt
                 convergence = True
@@ -254,16 +262,11 @@ class IRelief(BaseEstimator, TransformerMixin):
                 dist_weights = dist_weights_nxt
                 iter_count += 1
 
+        ############################
+
         # Rank features by feature weights.
         rank = rankdata(-dist_weights, method='ordinal')
 
         # Return feature ranks and last distance weights.
         return rank, dist_weights
 
-if __name__ == "__main__":
-    import scipy.io as sio
-    data = sio.loadmat('./test_data/data.mat')['data']
-    target = np.ravel(sio.loadmat('./test_data/target.mat')['target'])
-    irelief = IRelief(n_features_to_select=2).fit(data, target)
-    print("weights: {0}".format(irelief.weights))
-    print("rank: {0}".format(irelief.rank))

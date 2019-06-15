@@ -8,16 +8,18 @@ from sklearn.preprocessing import StandardScaler
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-import pdb
 
 class MultiSURF(BaseEstimator, TransformerMixin):
 
-    """ TODO  """
+    """sklearn compatible implementation of the MultiSURF algorithm
+
+        author: Jernej Vivod
+    """
 
     def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select
-        self.dist_func = dist_func
-        self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select  # Number of features to select.
+        self.dist_func = dist_func                        # distance function to use
+        self.learned_metric_func = learned_metric_func    # learned metric function
 
 
     def fit(self, data, target):
@@ -89,6 +91,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
         """
 
+        # TODO use sklearn library!!!! -- see irelief
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
             dist_mat = np.empty((data[0].shape, data[0].shape), dtype=np.float64)
@@ -123,6 +126,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         near_thresh : np.float64 = ex_avg_dist - ex_std  # Get threshold for near neighbours.
         return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0]  # Return indices of examples that are considered near neighbours. 
 
+    # TODO implement in Julia
     # update_weights: go over features and update weights.
     # @nb.njit
     def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
@@ -170,8 +174,8 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             pairwise_dist = self._get_pairwise_distances(data, dist_func, mode="example")
 
         # Get maximum and minimum values of each feature.
-        max_f_vals = np.amax(data[:, :], 0)
-        min_f_vals = np.amin(data[:, :], 0)
+        max_f_vals = np.amax(data, 0)
+        min_f_vals = np.amin(data, 0)
 
         # Get all unique classes.
         classes = np.unique(target)
@@ -205,11 +209,12 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             # Get probabilities of miss classes.
             u, c = np.unique(classes_other, return_counts=True)
             class_to_weight = dict(zip(u, c/np.sum(c)))
-            #class_to_weight = dict(zip(p_classes_other[:, 0], p_weights))
+
             # Compute weights multiplier vector.
             weights_mult = np.array([class_to_weight[idx] for idx in classes_other])
 
             # Go over all hits and misses (neighbours) and update weights
+            # TODO: where do I use neigh??
             for neigh in neigh_data.T:
                 weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0], :])[neigh_data[1] == 1, :],\
                         (data[neigh_data[0], :])[neigh_data[1] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)

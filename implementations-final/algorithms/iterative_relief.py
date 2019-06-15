@@ -187,9 +187,6 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             # Go over sampled examples.
             for idx in idx_sampled:
 
-                import pdb
-                pdb.set_trace()
-
                 e = data[idx, :]  # Get next sampled example.
                 data_filt = np.vstack((data[:idx, :], data[idx+1:, :]))
                 target_filt = np.delete(target, idx)
@@ -233,7 +230,8 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
                 feature_weights += numerator1/denominator1 - numerator2/denominator2
                 # **********************************************
 
-            # Update distance weights by feature weights.
+            # Update distance weights by feature weights - use algorithm's own feature evaluations
+            # to weight features when computing distances.
             dist_weights += feature_weights
 
             # Check convergence.
