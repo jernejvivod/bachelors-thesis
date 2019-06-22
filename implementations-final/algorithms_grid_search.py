@@ -181,7 +181,7 @@ searches = {
     'grid_search_relieff' : GridSearchCV(pipeline_relieff, param_grid=param_grid_relieff, cv=cv_startegy, verbose=True, iid=False),
     'grid_search_iterative_relief' : GridSearchCV(pipeline_iterative_relief, param_grid=param_grid_iterative_relief, cv=cv_startegy, verbose=True, iid=False),
     'grid_search_irelief' : GridSearchCV(pipeline_irelief, param_grid=param_grid_irelief, cv=cv_startegy, verbose=True, iid=False),
-    #grid_search_multiSURF' : GridSearchCV(pipeline_multiSURF, param_grid=param_grid_multiSURF, cv=cv_startegy, verbose=True, n_jobs=-1)
+    'grid_search_multiSURF' : GridSearchCV(pipeline_multiSURF, param_grid=param_grid_multiSURF, cv=cv_startegy, verbose=True, n_jobs=-1)
     'grid_search_random_selection' : GridSearchCV(pipeline_random_selection, param_grid=param_grid_random_selection, cv=cv_startegy, verbose=True, iid=False)
 }
 
