@@ -4,9 +4,13 @@ from scipy.stats import rankdata
 from functools import partial
 from nptyping import Array
 from sklearn.metrics import pairwise_distances
-from sklearn.preprocessing import StandardScaler
 
 from sklearn.base import BaseEstimator, TransformerMixin
+
+from julia import Julia
+jl = Julia(compiled_modules=False)
+
+import os
 
 
 class MultiSURF(BaseEstimator, TransformerMixin):
@@ -21,10 +25,15 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         self.dist_func = dist_func                        # distance function to use
         self.learned_metric_func = learned_metric_func    # learned metric function
 
+        # Use function written in Julia programming language to update feature weights.
+        script_path = os.path.abspath(__file__)
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_multisurf.jl")
+
+
 
     def fit(self, data, target):
         """
-        Rank features using relief feature selection algorithm
+        Rank features using MultiSURF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples
@@ -91,23 +100,19 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
         """
 
-        # TODO use sklearn library!!!! -- see irelief
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_mat = np.empty((data[0].shape, data[0].shape), dtype=np.float64)
-            for idx1 in np.arange(data.shape[0]):
-                for idx2 in np.arange(idx1, data.shape[0]):
-                    dist = dist_func(idx1, idx2)
-                    dist_mat[idx1, idx2] = dist
-                    dist_mat[idx2, idx1] = dist
-            return dist_mat
+            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            return pairwise_distances(data, metric=dist_func_adapter)
+
+
         elif mode == "example":
-           return pairwise_distances(data, metric=dist_func, n_jobs=-1)
+           return pairwise_distances(data, metric=dist_func)
         else:
             raise ValueError("Unknown mode specifier")
 
 
-    # TODO do in a vectorized form for all examples.
     def _critical_neighbours(self, ex_idx : int, dist_mat : Array[np.float64]) -> Array[np.float64]:
         """
         Find neighbours of instance with index inst_idx in radius defined by average distance to other examples and the standard deviation
@@ -122,51 +127,66 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
         msk : Array[int] = np.arange(dist_mat.shape[1]) != ex_idx  # Get mask that excludes ex_idx.
         ex_avg_dist : np.float64 = np.average(dist_mat[ex_idx, msk])  # Get average distance to example with index ex_idx.
-        ex_std : np.float64 = np.std(dist_mat[ex_idx, msk]) / 2.0  # Get standard deviation of distances to example with index ex_idx.
-        near_thresh : np.float64 = ex_avg_dist - ex_std  # Get threshold for near neighbours.
+        ex_d : np.float64 = np.std(dist_mat[ex_idx, msk]) / 2.0  # Get half of standard deviation of distances to example with index ex_idx.
+        near_thresh : np.float64 = ex_avg_dist - ex_d  # Get threshold for near neighbours - half a standard deviation away from mean.
         return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0]  # Return indices of examples that are considered near neighbours. 
 
-    # TODO implement in Julia
-    # update_weights: go over features and update weights.
-    # @nb.njit
-    def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
-        """
-        Update MultiSURF weights as in RELIEFF.
-        
-        Args:
-          data : Arrax[np.float64] -- training examples
-          e : Array[np.float64] -- current example
-          closest_same : Array[np.float64] -- matrix of hits that pass the threshold
-          closest_other : Array[np.float64] -- matrix of misses that pass the threshold
-          weights : Array[np.float64] -- feature weights
-          weights_mult : Array[np.float64] -- probability multiplication for weights.
-          max_f_vals : Array[np.float64] -- maximum feature values
-          min_f_vals : Array[np.float64] -- minimum feature values
-        
-        Returns:
-          Array[np.float64] -- updated feature weights for passed example
-        
-        """
+    # # @nb.njit
+    # def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
+    #     """
+    #     Update MultiSURF weights as in RELIEFF.
+    #     
+    #     Args:
+    #       data : Arrax[np.float64] -- training examples
+    #       e : Array[np.float64] -- current example
+    #       closest_same : Array[np.float64] -- matrix of hits that pass the threshold
+    #       closest_other : Array[np.float64] -- matrix of misses that pass the threshold
+    #       weights : Array[np.float64] -- feature weights
+    #       weights_mult : Array[np.float64] -- probability multiplication for weights.
+    #       max_f_vals : Array[np.float64] -- maximum feature values
+    #       min_f_vals : Array[np.float64] -- minimum feature values
+    #     
+    #     Returns:
+    #       Array[np.float64] -- updated feature weights for passed example
+    #     
+    #     """
 
-        # Go over features.
-        for t in np.arange(data.shape[1]):
+    #     # Go over features.
+    #     for t in np.arange(data.shape[1]):
 
-            # Penalty term
-            penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
+    #         # Penalty term
+    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
 
-            # Reward term
-            reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
+    #         # Reward term
+    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
 
-            # Weights update
-            weights[t] = weights[t] - penalty/(data.shape[0]*closest_same.shape[0]) + reward/(data.shape[0]*closest_other.shape[0])
+    #         # Weights update
+    #         weights[t] = weights[t] - penalty/(data.shape[0]*closest_same.shape[0]) + reward/(data.shape[0]*closest_other.shape[0])
 
-        # Return updated weights.
-        return weights
+    #     # Return updated weights.
+    #     return weights
 
 
     def _multiSURF(self, data, target, dist_func, **kwargs):
 
-        # Compute weighted pairwise distances (metric or non-metric space).
+        """Compute feature scores using multiSURF algorithm
+
+        Args:
+            data : Array[np.float64] -- Matrix containing examples' data as rows
+            target : Array[np.int] -- matrix containing the example's target variable value
+            dist_func : Callable[[Array[np.float64], Array[np.float64]], Array[np.float64]] -- function for evaluating
+            distances between examples. The function should acept two examples or two matrices of examples and return the dictances.
+            **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance
+            function and indices of two training examples and returns the distance between the examples in the learned
+            metric space.
+
+        Returns:
+            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+
+        """
+
+
+        # Compute weighted pairwise distances.
         if 'learned_metric_func' in kwargs:
             dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
             pairwise_dist = self._get_pairwise_distances(data, dist_func_learned, mode="index")
@@ -181,7 +201,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         classes = np.unique(target)
 
         # Get probabilities of classes in training set.
-        p_classes = np.vstack(np.unique(target, return_counts=True)).T
+        p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
         p_classes[:, 1] = p_classes[:, 1]/np.sum(p_classes[:, 1])
 
         # Initialize feature weights.
@@ -193,8 +213,9 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         neighbours_map = dict.fromkeys(np.arange(data.shape[0]))
         for ex_idx in np.arange(data.shape[0]):
             r1 = self._critical_neighbours(ex_idx, pairwise_dist)  # Compute indices of neighbours.
-            r2 = target[r1] == target[ex_idx]  # Compute whether neighbour hit or miss.
-            neighbours_map[ex_idx] = np.vstack((r1, r2)) # Add entry to dictionary.
+            r2 = target[r1] == target[ex_idx]  # Compute whether neighbour represents a hit or miss.
+            neighbours_map[ex_idx] = np.vstack((r1, r2)) # Add info about neighbours to dictionary. First row represents neighbour indices.
+                                                         # Second row represents whether neighbour is a hit or miss (logical 0 or 1).
 
         # Go over all hits and misses and update weights.
         for ex_idx, neigh_data in neighbours_map.items():
@@ -208,16 +229,18 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
             # Get probabilities of miss classes.
             u, c = np.unique(classes_other, return_counts=True)
+            # Compute weights of classes of miss neighbours.
             class_to_weight = dict(zip(u, c/np.sum(c)))
 
             # Compute weights multiplier vector.
-            weights_mult = np.array([class_to_weight[idx] for idx in classes_other])
+            weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
 
-            # Go over all hits and misses (neighbours) and update weights
-            # TODO: where do I use neigh??
-            for neigh in neigh_data.T:
-                weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0], :])[neigh_data[1] == 1, :],\
-                        (data[neigh_data[0], :])[neigh_data[1] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)
+            import pdb
+            pdb.set_trace()
+
+            # Update weights.
+            weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :] == 1, :],\
+                    (data[neigh_data[0, :], :])[neigh_data[1, :] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)
 
         # Rank weights and return.
         # Create array of feature enumerations based on score.

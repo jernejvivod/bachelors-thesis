@@ -97,7 +97,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]), int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func) 
