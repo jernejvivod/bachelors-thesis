@@ -103,7 +103,7 @@ class Relieff(BaseEstimator, TransformerMixin):
         """Compute feature scores using ReliefF algorithm
 
         Args:
-            data : Array[np.float64] -- matrix containing examples' data as rows 
+            data : Array[np.float64] -- Matrix containing examples' data as rows 
             target : Array[np.int] -- matrix containing the example's target variable value
             m : int -- Sample size to use when evaluating the feature scores
             k : int -- Number of closest examples from each class to use

@@ -240,7 +240,7 @@ class IRelief(BaseEstimator, TransformerMixin):
             # weighted distance function
             dist_func_w = partial(dist_func, dist_weights) 
 
-            # Compute weighted pairwise distances (metric or non-metric space).
+            # Compute weighted pairwise distances.
             if 'learned_metric_func' in kwargs:
                 dist_func_w_learned = partial(kwargs['learned_metric_func'], dist_func_w)
                 pairwise_dist = self._get_pairwise_distances(data, dist_func_w_learned, mode="index")
