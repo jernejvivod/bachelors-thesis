@@ -13,7 +13,7 @@ class IRelief(BaseEstimator, TransformerMixin):
 
     """
     
-    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.dist_func = dist_func                        # distance function to use
         self.max_iter = max_iter                          # Maximum number of iterations

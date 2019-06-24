@@ -235,9 +235,6 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             # Compute weights multiplier vector.
             weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
 
-            import pdb
-            pdb.set_trace()
-
             # Update weights.
             weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :] == 1, :],\
                     (data[neigh_data[0, :], :])[neigh_data[1, :] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)

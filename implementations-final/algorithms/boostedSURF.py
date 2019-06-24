@@ -7,14 +7,15 @@ from sklearn.metrics import pairwise_distances
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class MultiSURFStar(BaseEstimator, TransformerMixin):
-    """sklearn compatible implementation of the MultiSURFStar algorithm
+    """sklearn compatible implementation of the boostedSURF algorithm
 
         author: Jernej Vivod
 
     """
 
-    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2: np.sum(np.logical_xor(x1, x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, phi, dist_func_w=lambda x1, x2: np.sum(w*np.logical_xor(x1, x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # Number of features to select.
+        self.phi = phi                                    # the phi parameter (update weights when iteration_counter mod phi == 0)
         self.dist_func = dist_func                        # Distance function to use.
         self.learned_metric_func = learned_metric_func    # learned metric function.
 
@@ -31,9 +32,9 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         """
 
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func)
+            self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func)
 
 
     def transform(self, data):
@@ -50,7 +51,6 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
 
-
     def fit_transform(self, data, target):
         """
         Compute ranks of features and perform feature selection
@@ -65,8 +65,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         self.fit(data, target)
         return self.transform(data)
 
-
-    def _multisurfstar(self, data, target, dist_func, **kwargs):
+    def _boostedSURF(self, data, target, phi, dist_func, **kwargs):
 
         """Compute feature scores using multiSURFStar algorithm
 
@@ -83,22 +82,31 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
+        
+        # Initialize distance weights.
+        dist_weights = np.ones(data.shape[1])
+
+        # weighted distance function
+        dist_func_w = partial(dist_func, dist_weights)
 
         # Initialize weights.
         weights = np.zeros(data.shape[1], dtype=np.float)
 
         for idx in data.shape[0]:
-
-            # Get next example
-            e = data[row_idx, :]
-            target_e = target[row_idx]
+            
+            # Recompute distance matrix.
+            if np.mod(idx, phi) == 0:
+                dist_weights = np.maximum(weights, np.ones(data.shape[1]))
+                dist_func_w = partial(dist_func, dist_weights)
+                if 'learned_metric_func' in kwargs:
+                    dist_func_w_learned = partial(kwargs['learned_metric_func'], dist_func_w)
+           
 
             # Compute distances from current examples to all other examples.
             if 'learned_metric_func' in kwargs:
-                dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
-                dists = np.array([dist_func_learned(idx, idx_other) for idx_other in np.arange(data.shape[0])])
+                dists = np.array([dist_func_w_learned(idx, idx_other) for idx_other in np.arange(data.shape[0])])
             else:
-                dists = dist_func(data[idx, :], data)
+                dists = dist_func_w(data[idx, :], data)
 
             # Compute mean and standard deviation of distances and set thresholds.
             T_next = np.mean(dists[np.arange(data.shape[0] != idx)])
@@ -106,6 +114,9 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             thresh_near = T_next - sigma_nxt/2.0
             thresh_far = T_next + sigma_nxt/2.0
 
+            # Get next example
+            e = data[idx, :]
+            target_e = target[idx]
 
             # Get mask of examples that are close.
             msk_close = dists < thresh_near
@@ -114,13 +125,12 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             msk_far = dists > thresh_far
             msk_far[idx] = False
 
-
             # Get examples that are close.
             examples_close = data[msk_close, :]
             target_close = target[msk_close]
             
             # Get examples that are far.
-            examples_far = data[msk_fat, :]
+            examples_far = data[msk_far, :]
             target_far = target[msk_far]
 
             # Get considered features of close examples.
