@@ -33,12 +33,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
-        # If using a learned metric function
-        if self.learned_metric_func != None:
-           self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func)
-        else:
-           self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, self.conv_condition, self.initial_w_div)
+        # Fit training data.
+        self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func)
 
         # Return reference to self.
         return self
@@ -220,7 +216,7 @@ class IRelief(BaseEstimator, TransformerMixin):
             kwargs -- can contain keyword argument 'learned_metric_func' which contains the learned metric function (takes two indices)
 
         Returns:
-            Array[np.float64] -- feature weights
+            Array[np.int], Array[np.float64] -- array of feature rankings and array of feature scores
         """
 
         # Intialize convergence indicator and distance weights for features.

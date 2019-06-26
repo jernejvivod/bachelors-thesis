@@ -12,9 +12,9 @@ from julia import Julia
 jl = Julia(compiled_modules=False)
 
 
-class Relieff(BaseEstimator, TransformerMixin):
+class ReliefMMS(BaseEstimator, TransformerMixin):
 
-    """sklearn compatible implementation of the ReliefF algorithm
+    """sklearn compatible implementation of the ReliefMMS algorithm
     
         Author: Jernej Vivod
     """
@@ -43,10 +43,7 @@ class Relieff(BaseEstimator, TransformerMixin):
             self
         """
 
-        if self.learned_metric_func != None:
-            self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
-        else:
-            self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func)
+        self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
         return self
 
 
@@ -100,7 +97,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
     def _relieff(self, data, target, m, k, dist_func, **kwargs):
 
-        """Compute feature scores using ReliefF algorithm
+        """Compute feature scores using Reliefmms algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows 
@@ -114,7 +111,7 @@ class Relieff(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 

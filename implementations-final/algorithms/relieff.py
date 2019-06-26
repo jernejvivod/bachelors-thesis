@@ -33,7 +33,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
     def fit(self, data, target):
         """
-        Rank features using relief feature selection algorithm
+        Rank features using ReliefF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples

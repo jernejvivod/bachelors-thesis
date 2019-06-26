@@ -5,3 +5,11 @@ weights updates (Julia functions) without loops
 fix reliefmms weight updates
 
 dtype=... when initializing weights and other things.
+
+np.float() instead of float()
+
+remove if learned_metric_func == None... REDUNDANT!!
+
+Cite papers defining algorithms in class docstring
+
+

@@ -12,6 +12,7 @@ class TURF(baseEstimator, transformerMixin):
 
 
     def fit(self, data, target):
+
         """
         Rank features using TURF feature selection algorithm
 
@@ -22,10 +23,12 @@ class TURF(baseEstimator, transformerMixin):
         Returns:
             self
         """
+
         self.rank, self.weights = self._turf(data, target, self._num_it, self._rba)
 
 
     def transform(self, data):
+
         """
         Perform feature selection using computed feature ranks
 
@@ -35,12 +38,14 @@ class TURF(baseEstimator, transformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
+
         # select n_features_to_select best features and return selected features.
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
 
 
     def fit_transform(self, data, target):
+
         """
         Compute ranks of features and perform feature selection
         Args:
@@ -50,12 +55,12 @@ class TURF(baseEstimator, transformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
+
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection
 
 
     def _turf(self, data, target, num_it, rba):
-
 
         """Compute feature scores using TURF algorithm
 
@@ -66,7 +71,7 @@ class TURF(baseEstimator, transformerMixin):
             rba -- initialized relief based feature selection algorithm implementation
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
         

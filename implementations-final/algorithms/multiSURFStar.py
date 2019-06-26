@@ -18,6 +18,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         self.dist_func = dist_func                        # Distance function to use.
         self.learned_metric_func = learned_metric_func    # learned metric function.
 
+
     def fit(self, data, target):
         """
         Rank features using MultiSURFStar feature selection algorithm
@@ -29,11 +30,11 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        
+        # Fit training data.
+        self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
 
-        if self.learned_metric_func != None:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
-        else:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func)
+        return self
 
 
     def transform(self, data):
@@ -80,7 +81,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 

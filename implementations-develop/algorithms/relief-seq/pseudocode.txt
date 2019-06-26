@@ -1,0 +1,7 @@
+# Iterate over k = 1:k_max
+
+# Compute ReliefF scores for each value of k.
+
+# Put weights for each subsequent k in column in matrix.
+
+# weights = np.max(weights_mat, 1)
