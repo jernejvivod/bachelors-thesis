@@ -1,6 +1,7 @@
 import unittest
 from functools import partial
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 
 ## RELIEF ALGORITHM IMPLEMENTATION UNIT TESTS ##########
 
@@ -187,7 +188,7 @@ class TestIterativeRelief(unittest.TestCase):
     def test_init_default(self):
         iterative_relief = IterativeRelief()
         self.assertEqual(iterative_relief.n_features_to_select, 10)
-        self.assertEqual(iterative_relief.m, 100)
+        self.assertEqual(iterative_relief.m, -1)
         self.assertEqual(iterative_relief.min_incl, 3)
         self.assertNotEqual(iterative_relief.dist_func, None)
         self.assertEqual(iterative_relief.max_iter, 100)
@@ -268,6 +269,156 @@ class TestIterativeRelief(unittest.TestCase):
 
 
 ########################################################
+
+
+## I-RELIEF ALGORITHM IMPLEMENTATION UNIT TESTS ########
+
+from algorithms.irelief import IRelief
+
+class TestIterativeRelief(unittest.TestCase):
+
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        irelief = IRelief()
+        self.assertEqual(irelief.n_features_to_select, 10)
+        self.assertNotEqual(irelief.dist_func, None)
+        self.assertEqual(irelief.max_iter, 100)
+        self.assertEqual(irelief.k_width, 5)
+        self.assertEqual(irelief.conv_condition, 1.0e-12)
+        self.assertEqual(irelief.initial_w_div, 1)
+        self.assertEqual(irelief.learned_metric_func, None)
+
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        irelief = IRelief(n_features_to_select=15, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1),
+                max_iter=80, k_width=3, conv_condition=1.0e-15, initial_w_div=2,
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(irelief.n_features_to_select, 15)
+        self.assertNotEqual(irelief.dist_func, None)
+        self.assertEqual(irelief.max_iter, 80)
+        self.assertEqual(irelief.k_width, 3)
+        self.assertEqual(irelief.conv_condition, 1.0e-15)
+        self.assertEqual(irelief.initial_w_div, 2)
+        self.assertNotEqual(irelief.learned_metric_func, None)
+
+
+    def test_pairwise_distances_example(self):
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        irelief = IRelief()
+
+        # 
+        dist_func = lambda w, x1, x2: np.sum(np.abs(w*(x1-x2)))
+        dist_weights = np.array([1.2, 0.5, 0.8])
+        dist_func_w = partial(dist_func, dist_weights)
+
+        # Compute results using method.
+        dist_mat = irelief._get_pairwise_distances(data=data, dist_func=dist_func_w, mode='example')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0, 16.120682, 2.83908, 3.066782, 2.376784, 9.951871],
+                                [16.120682, 0.0, 13.385571, 16.710644, 15.376682, 7.954301],
+                                [2.839081, 13.385571, 0.0, 5.905863, 3.540881, 7.21676],
+                                [3.066782, 16.710644, 5.905863, 0.0, 2.364982, 10.541833],
+                                [2.376784, 15.376682, 3.540881, 2.364982, 0.0, 9.207871],
+                                [9.951871, 7.954301, 7.21676, 10.541833, 9.207871, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+    def test_pairwise_distances_index(self):
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        irelief = IRelief()
+        dist_weights = np.array([1.2, 0.5, 0.8])
+
+        # Initialize dummy distance function.
+        dist_func_learned_dummy = lambda data, w, i1, i2: np.sum(np.abs(w*(data[i1, :]-data[i2, :])))
+        dist_func_learned_dummy = partial(dist_func_learned_dummy, data, dist_weights)
+        
+        # Compute results using method.
+        dist_mat = irelief._get_pairwise_distances(data=data, dist_func=dist_func_learned_dummy, mode='index')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0, 16.120682, 2.83908, 3.066782, 2.376784, 9.951871],
+                                [16.120682, 0.0, 13.385571, 16.710644, 15.376682, 7.954301],
+                                [2.839081, 13.385571, 0.0, 5.905863, 3.540881, 7.21676],
+                                [3.066782, 16.710644, 5.905863, 0.0, 2.364982, 10.541833],
+                                [2.376784, 15.376682, 3.540881, 2.364982, 0.0, 9.207871],
+                                [9.951871, 7.954301, 7.21676, 10.541833, 9.207871, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+    def test_get_mean_m_vals(self):
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 2, 1, 3, 1])
+
+        irelief = IRelief()
+        mean_m = irelief._get_mean_m_vals(data, target)
+
+        correct_res = np.array([[3.19722, 2.50167667, 2.53085],
+                                [6.99316, 3.9321625, 4.60338],
+                                [1.12897, 3.0198125, 2.51372  ],
+                                [3.47841   , 2.36341667, 3.71420333],
+                                [2.231318, 2.9662  , 3.015948],
+                                [2.87412   , 5.30838667, 2.52896667]])
+
+        assert_array_almost_equal(mean_m, correct_res, decimal=5)
+
+
+    def test_get_mean_h_vals(self):
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 2, 1, 3, 1])
+
+        irelief = IRelief()
+        mean_m = irelief._get_mean_h_vals(data, target)
+        
+        correct_res = np.array([[0.98691667, 3.40585667, 1.81540333],
+                               [3.320355, 3.029615, 1.49194],
+                               [3.320355, 3.029615, 1.49194],
+                               [1.08064667, 2.58025, 2.43663],
+                               [0., 0., 0.],
+                               [1.88010333, 4.33489333, 3.00958]])
+
+        assert_array_almost_equal(mean_m, correct_res, decimal=5)
+
+
+    def test_get_gamma_vals(self):
+        pass
+
+
+    def test_get_nu(self):
+        pass
+
+
+
+########################################################
+
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class IRelief(BaseEstimator, TransformerMixin):
 
     """
     
-    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.dist_func = dist_func                        # distance function to use
         self.max_iter = max_iter                          # Maximum number of iterations
@@ -118,12 +118,10 @@ class IRelief(BaseEstimator, TransformerMixin):
         # Allocate matrix for storing results.
         mean_m = np.empty(data.shape, dtype=float)
 
-        # Compute matrix of absolute values of pairwise differences.
-        pairwise_diff = np.abs(data[:, np.newaxis] - data)
-
         # Go over rows of pairwise differences.
-        for idx, r in enumerate(pairwise_diff):
-            mean_m[idx, :] = np.mean(r[classes != classes[idx], :], 0)  # Compute mean difference.
+        for idx in np.arange(data.shape[0]):
+            mean_m[idx, :] = np.mean(np.abs(data - data[idx, :])[classes != classes[idx], :], 0)
+
         return mean_m
 
 
@@ -143,14 +141,9 @@ class IRelief(BaseEstimator, TransformerMixin):
         # Allocate matrix for storing results.
         mean_h = np.empty(data.shape, dtype=float)
 
-        # Compute matrix of pairwise differences.
-        pairwise_diff = np.abs(data[:, np.newaxis] - data)
-
-        # Go over rows of matrix of pairwise differences
-        for idx, r in enumerate(pairwise_diff):
-            msk = classes == classes[idx]  # Get mask of examples from same class.
-            msk[idx] = False  # Exclude self from mask.
-            mean_h[idx, :] = np.mean(r[msk, :], 0)  # Compute mean difference.
+        # Go over rows of pairwise differences.
+        for idx in np.arange(data.shape[0]):
+            mean_h[idx, :] = np.mean(np.abs(data - data[idx, :])[classes == classes[idx], :], 0)
 
         return mean_h
 
