@@ -2,6 +2,8 @@ import numpy as np
 from scipy.stats import rankdata
 from functools import partial
 
+from sklearn.metrics import pairwise_distances
+
 import os
 import sys
 
@@ -40,7 +42,8 @@ class SURFStar(BaseEstimator, TransformerMixin):
             self
         """
         
-            self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+        self.rank, self.weights = self._surf(data, target, self.dist_func, 
+                learned_metric_func=self.learned_metric_func)
         return self
 
 
@@ -141,7 +144,7 @@ class SURFStar(BaseEstimator, TransformerMixin):
             pairwise_dist = self._get_pairwise_distances(data, dist_func, mode="example")
 
         # Get mean distance between all examples.
-        mean_dist = float(np.sum(pairwise_dist))/float(np.size(pairwise_dist))
+        mean_dist = np.float(np.sum(pairwise_dist))/np.float(np.size(pairwise_dist))
 
         # Go over examples.
         for idx in np.arange(data.shape[0]):
@@ -178,10 +181,12 @@ class SURFStar(BaseEstimator, TransformerMixin):
             ### WEIGHTS UPDATE ###
 
             # Update feature weights for near examples.
-            weights_near = self._update_weights_near(data, e, data[hit_neigh_mask_near, :], data[miss_neigh_mask_near, :], weights, max_f_vals, min_f_vals)
+            weights_near = self._update_weights_near(data, e, data[hit_neigh_mask_near, :], 
+                    data[miss_neigh_mask_near, :], weights, max_f_vals, min_f_vals)
 
             # Update feature weights for far examples.
-            weights_far = self._update_weights_far(data, e, data[hit_neigh_mask_far, :], data[miss_neigh_mask_far, :], weights, max_f_vals, min_f_vals)
+            weights_far = self._update_weights_far(data, e, data[hit_neigh_mask_far, :], 
+                    data[miss_neigh_mask_far, :], weights, max_f_vals, min_f_vals)
             
             # Subtract scoring for far examples. Subtract previous value of weights to get delta.
             weights = weights_near - (weights_far - weights)

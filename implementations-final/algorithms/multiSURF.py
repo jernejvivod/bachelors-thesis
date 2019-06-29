@@ -105,8 +105,6 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
                     int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
-
-
         elif mode == "example":
            return pairwise_distances(data, metric=dist_func)
         else:
@@ -125,11 +123,17 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             Array[np.int] -- indices of examples that are considered near neighbors of example with index ex_idx.
         """
 
-        msk : Array[int] = np.arange(dist_mat.shape[1]) != ex_idx  # Get mask that excludes ex_idx.
-        ex_avg_dist : np.float64 = np.average(dist_mat[ex_idx, msk])  # Get average distance to example with index ex_idx.
-        ex_d : np.float64 = np.std(dist_mat[ex_idx, msk]) / 2.0  # Get half of standard deviation of distances to example with index ex_idx.
-        near_thresh : np.float64 = ex_avg_dist - ex_d  # Get threshold for near neighbours - half a standard deviation away from mean.
-        return np.nonzero(dist_mat[ex_idx, msk] < near_thresh)[0]  # Return indices of examples that are considered near neighbours. 
+        # Get average distance to example with index ex_idx.
+        ex_avg_dist : np.float64 = np.mean(dist_mat[ex_idx, np.arange(dist_mat.shape[1]) != ex_idx])
+        # Get half of standard deviation of distances to example with index ex_idx.
+        ex_d : np.float64 = np.std(dist_mat[ex_idx, np.arange(dist_mat.shape[1]) != ex_idx]) / 2.0
+        # Get threshold for near neighbours - half a standard deviation away from mean.
+        near_thresh : np.float64 = ex_avg_dist - ex_d
+
+        # Return indices of examples that are considered near neighbours. 
+        msk_near = dist_mat[ex_idx, :] < near_thresh
+        msk_near[ex_idx] = False
+        return np.nonzero(msk_near)[0]
 
     # # @nb.njit
     # def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
@@ -236,8 +240,8 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
 
             # Update weights.
-            weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :] == 1, :],\
-                    (data[neigh_data[0, :], :])[neigh_data[1, :] == 0, :], weights, weights_mult, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :], :],\
+                    (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :]), :], weights, weights_mult, max_f_vals, min_f_vals)
 
         # Rank weights and return.
         # Create array of feature enumerations based on score.

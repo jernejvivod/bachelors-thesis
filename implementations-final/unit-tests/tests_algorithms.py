@@ -1,7 +1,7 @@
 import unittest
 from functools import partial
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 ## RELIEF ALGORITHM IMPLEMENTATION UNIT TESTS ##########
 
@@ -275,7 +275,7 @@ class TestIterativeRelief(unittest.TestCase):
 
 from algorithms.irelief import IRelief
 
-class TestIterativeRelief(unittest.TestCase):
+class TestIRelief(unittest.TestCase):
 
 
     # Test initialization with default parameters.
@@ -305,6 +305,7 @@ class TestIterativeRelief(unittest.TestCase):
 
 
     def test_pairwise_distances_example(self):
+
         # test data
         data = np.array([[2.09525, 0.26961, 3.99627],
                          [9.86248, 6.22487, 8.77424],
@@ -314,7 +315,7 @@ class TestIterativeRelief(unittest.TestCase):
                          [4.77481, 8.01036, 7.57880]])
         irelief = IRelief()
 
-        # 
+        # Initialize distance function.
         dist_func = lambda w, x1, x2: np.sum(np.abs(w*(x1-x2)))
         dist_weights = np.array([1.2, 0.5, 0.8])
         dist_func_w = partial(dist_func, dist_weights)
@@ -334,6 +335,7 @@ class TestIterativeRelief(unittest.TestCase):
 
 
     def test_pairwise_distances_index(self):
+
         # test data
         data = np.array([[2.09525, 0.26961, 3.99627],
                          [9.86248, 6.22487, 8.77424],
@@ -363,6 +365,7 @@ class TestIterativeRelief(unittest.TestCase):
 
 
     def test_get_mean_m_vals(self):
+
         # test data
         data = np.array([[2.09525, 0.26961, 3.99627],
                          [9.86248, 6.22487, 8.77424],
@@ -372,20 +375,26 @@ class TestIterativeRelief(unittest.TestCase):
                          [4.77481, 8.01036, 7.57880]])
         target = np.array([1, 2, 2, 1, 3, 1])
 
+        # Initialize algorithm.
         irelief = IRelief()
+
+        # Compute results using method.
         mean_m = irelief._get_mean_m_vals(data, target)
 
+        # results computed by hand
         correct_res = np.array([[3.19722, 2.50167667, 2.53085],
                                 [6.99316, 3.9321625, 4.60338],
                                 [1.12897, 3.0198125, 2.51372  ],
                                 [3.47841   , 2.36341667, 3.71420333],
                                 [2.231318, 2.9662  , 3.015948],
                                 [2.87412   , 5.30838667, 2.52896667]])
-
+        
+        # Check for equivalence.
         assert_array_almost_equal(mean_m, correct_res, decimal=5)
 
 
     def test_get_mean_h_vals(self):
+
         # test data
         data = np.array([[2.09525, 0.26961, 3.99627],
                          [9.86248, 6.22487, 8.77424],
@@ -395,9 +404,13 @@ class TestIterativeRelief(unittest.TestCase):
                          [4.77481, 8.01036, 7.57880]])
         target = np.array([1, 2, 2, 1, 3, 1])
 
+        # Initialize algorithm.
         irelief = IRelief()
+
+        # Compute results using method.
         mean_m = irelief._get_mean_h_vals(data, target)
-        
+       
+        # results computed by hand
         correct_res = np.array([[0.98691667, 3.40585667, 1.81540333],
                                [3.320355, 3.029615, 1.49194],
                                [3.320355, 3.029615, 1.49194],
@@ -405,20 +418,708 @@ class TestIterativeRelief(unittest.TestCase):
                                [0., 0., 0.],
                                [1.88010333, 4.33489333, 3.00958]])
 
+        # Check for equivalence.
         assert_array_almost_equal(mean_m, correct_res, decimal=5)
 
 
     def test_get_gamma_vals(self):
-        pass
 
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 2, 1, 3, 1])
+        
+        # Initialize algorithm.
+        irelief = IRelief()
+        
+        # Initialize distance function.
+        dist_func = lambda w, x1, x2: np.sum(np.abs(w*(x1-x2)))
+        dist_weights = np.array([1.2, 0.5, 0.8])
+        dist_func_w = partial(dist_func, dist_weights)
+       
+        # Initialize kernel function.
+        k_width = 4.0
+        kern_func = lambda d: np.exp(-d/k_width)
+        
+        # Compute pairwise distance matrix.
+        dist_mat = irelief._get_pairwise_distances(data, dist_func=dist_func_w, mode='example')
+
+        # Use method to compute gamma values.
+        gamma_vals = irelief._get_gamma_vals(dist_mat, target, kern_func)
+        
+        # results computed by hand
+        correct_res = np.array([0.34031707, 0.15538126, 0.02642204, 0.40207921, 0.0, 0.27819147])
+
+        # Check for equivalence.
+        assert_array_almost_equal(gamma_vals, correct_res, decimal=5)
 
     def test_get_nu(self):
-        pass
 
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 2, 1, 3, 1])
+        
+        # Initialize algorithm.
+        irelief = IRelief()
+        
+        # Initialize distance function.
+        dist_func = lambda w, x1, x2: np.sum(np.abs(w*(x1-x2)))
+        dist_weights = np.array([1.2, 0.5, 0.8])
+        dist_func_w = partial(dist_func, dist_weights)
+       
+        # Initialize kernel function.
+        k_width = 4.0
+        kern_func = lambda d: np.exp(-d/k_width)
+        
+        # Compute pairwise distance matrix.
+        dist_mat = irelief._get_pairwise_distances(data, dist_func=dist_func_w, mode='example')
 
+        # Use methods to compute gamma values, mean m value and mean h values.
+        gamma_vals = irelief._get_gamma_vals(dist_mat, target, kern_func)
+        mean_m = irelief._get_mean_m_vals(data, target)
+        mean_h = irelief._get_mean_h_vals(data, target)
+        
+        # Compute nu using method.
+        nu = irelief._get_nu(gamma_vals, mean_m, mean_h, data.shape[0])
+
+        # results computed by hand
+        correct_res = np.array([0.41760099, 0.00265091, 0.18898647])
+
+        # Check for equivalence.
+        assert_array_almost_equal(nu, correct_res, decimal=5)
 
 ########################################################
 
+
+## SURF ALGORITHM IMPLEMENTATION UNIT TESTS ########
+
+from algorithms.SURF import SURF
+
+class TestSURF(unittest.TestCase):
+
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        surf = SURF()
+        self.assertEqual(surf.n_features_to_select, 10)
+        self.assertNotEqual(surf.dist_func, None)
+        self.assertEqual(surf.learned_metric_func, None)
+
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        surf = SURF(n_features_to_select=15, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2)), learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2)))
+        self.assertEqual(surf.n_features_to_select, 15)
+        self.assertNotEqual(surf.dist_func, None)
+        self.assertNotEqual(surf.learned_metric_func, None)
+
+
+    # Test computation of pairwise distance matrix using distance function that takes examples.    
+    def test_pairwise_distances_example(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        surf = SURF()
+
+        # Initialize distance function.
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+
+        # Compute results using method.
+        dist_mat = surf._get_pairwise_distances(data=data, dist_func=dist_func, mode='example')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+    # Test computation of pairwise distance matrix using distance function that references examples
+    # by their indices.
+    def test_pairwise_distances_index(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        surf = SURF()
+
+        # Initialize dummy distance function.
+        dist_func_learned_dummy = lambda data, i1, i2: np.sum(np.abs(data[i1, :]-data[i2, :]))
+        dist_func_learned_dummy = partial(dist_func_learned_dummy, data)
+        
+        # Compute results using method.
+        dist_mat = surf._get_pairwise_distances(data=data, dist_func=dist_func_learned_dummy, mode='index')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+    def test_weights_update(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 2, 1, 3, 1])
+
+        # Compute maximal and minimal feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
+        # Initialize algorithm.
+        surf = SURF()
+
+        # Initialize distance function.
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+
+        # Compute pairwise distance matrix.
+        dist_mat = surf._get_pairwise_distances(data, dist_func=dist_func, mode='example')
+        
+        # Compute mean distance between examples.
+        mean_dist = np.mean(dist_mat)
+
+        # sampled example from dataset
+        idx = 2
+        e = data[idx, :]
+        
+        # Get mask for neighbours and exlude distance of example to self from it.
+        neigh_mask = dist_mat[idx, :] <= mean_dist
+        neigh_mask[idx] = False
+        
+        # Get masks of hit and miss neighbours.
+        hit_neigh_mask = np.logical_and(neigh_mask, target == target[idx])
+        miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
+        
+        # Initialize feature weights row vector.
+        weights = np.zeros(data.shape[1], dtype=np.float)
+
+        # Update feature weights using method.
+        updated_weights = surf._update_weights(data, e, data[hit_neigh_mask, :], data[miss_neigh_mask, :], weights, max_f_vals, min_f_vals)
+                
+        # Results computed by hand.
+        neigh_mask_correct = np.array([True, False, False, True, True, False])
+        hit_neigh_mask_correct = np.array([False, False, False, False, False, False])
+        miss_neigh_mask_correct = np.array([True, False, False, True, True, False])
+        updated_weights_correct = np.array([0.0204515, 0.02998854, 0.06914647])
+
+        assert_array_equal(neigh_mask, neigh_mask_correct)
+        assert_array_equal(hit_neigh_mask, hit_neigh_mask_correct)
+        assert_array_equal(miss_neigh_mask, miss_neigh_mask_correct)
+        assert_array_almost_equal(updated_weights, updated_weights_correct, decimal=5)
+
+####################################################
+
+## VLSRELIEF ALGORITHM IMPLEMENTATION UNIT TESTS ###
+
+from algorithms.vlsrelief import VLSRelief
+
+class TestVlsRelief(unittest.TestCase):
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        vlsrelief = VLSRelief()
+        self.assertEqual(vlsrelief.n_features_to_select, 10)
+        self.assertEqual(vlsrelief.num_partitions_to_select, 10)
+        self.assertEqual(vlsrelief.num_subsets, 10)
+        self.assertEqual(vlsrelief.partition_size, 5)
+        self.assertEqual(vlsrelief.m, -1)
+        self.assertEqual(vlsrelief.k, 5)
+        self.assertNotEqual(vlsrelief.dist_func, None)
+        self.assertEqual(vlsrelief.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        vlsrelief = VLSRelief(n_features_to_select=15, num_partitions_to_select=15, num_subsets=13, 
+                partition_size=3, k=10, m=80, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1),
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+
+        self.assertEqual(vlsrelief.n_features_to_select, 15)
+        self.assertEqual(vlsrelief.num_partitions_to_select, 15)
+        self.assertEqual(vlsrelief.num_subsets, 13)
+        self.assertEqual(vlsrelief.partition_size, 3)
+        self.assertEqual(vlsrelief.k, 10)
+        self.assertEqual(vlsrelief.m, 80)
+        self.assertNotEqual(vlsrelief.dist_func, None)
+        self.assertNotEqual(vlsrelief.learned_metric_func, None)
+
+    # Test partitioning procedure.
+    def test_partitioning(sefl):
+
+        # data
+        data = np.array([[0.05402045, 0.50067837, 0.88634756, 0.12600894, 0.1217951, 0.79149936, 0.80533926, 0.05799983, 0.09012575, 0.51209482],
+                         [0.9710618,  0.87669295, 0.9873201,  0.53634331, 0.7096669, 0.13418176, 0.01828409, 0.74253249, 0.21394251, 0.83794836],
+                         [0.2965446,  0.24366306, 0.75521094, 0.31393031, 0.94258869,0.41344823, 0.76089011, 0.74013124, 0.24614211, 0.87928719],
+                         [0.44880795, 0.73319887, 0.62020573, 0.67281185, 0.88477685,0.91124333, 0.8338125 , 0.25280089, 0.78730139, 0.14757276],
+                         [0.02162485, 0.72887426, 0.67307778, 0.81398892, 0.397657  ,0.80729671, 0.89944621, 0.36769683, 0.90873926, 0.11403073]])
+        
+        # size of partitions
+        partition_size = 3
+
+        # Get array of feature indices.
+        feat_ind = np.arange(data.shape[1])
+        
+        # Test for equality.
+        assert_array_equal(feat_ind, np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+
+        # Get indices of partition starting indices.
+        feat_ind_start_pos = np.arange(0, data.shape[1], partition_size)
+
+        # Test for equality. 
+        assert_array_equal(feat_ind_start_pos, np.array([0, 3, 6, 9]))
+
+        # Randomly select k partitions and combine them to form a subset of features of examples.
+        ind_sel = np.ravel([np.arange(el, el+partition_size) for el in [9, 0, 6]])
+
+        # Test for equality. 
+        assert_array_equal(ind_sel, np.array([9, 10, 11, 0, 1, 2, 6, 7, 8]))
+        
+        # Remove out of bounds indices.
+        ind_sel = ind_sel[ind_sel <= feat_ind[-1]]
+
+        # Test for equality. 
+        assert_array_equal(ind_sel, np.array([9, 0, 1, 2, 6, 7, 8]))
+
+
+####################################################
+
+
+## BOOSTEDSURF ALGORITHM IMPLEMENTATION UNIT TESTS ###
+
+from algorithms.boostedSURF import BoostedSURF
+
+class TestBoostedSURF(unittest.TestCase):
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        boostedsurf = BoostedSURF()
+        self.assertEqual(boostedsurf.n_features_to_select, 10)
+        self.assertEqual(boostedsurf.phi, 5)
+        self.assertNotEqual(boostedsurf.dist_func, None)
+        self.assertEqual(boostedsurf.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        boostedsurf = BoostedSURF(n_features_to_select=15, phi=3, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(boostedsurf.n_features_to_select, 15)
+        self.assertEqual(boostedsurf.phi, 3)
+        self.assertNotEqual(boostedsurf.dist_func, None)
+        self.assertNotEqual(boostedsurf.learned_metric_func, None)
+
+    def test_alg(self):
+
+        # data
+        data = np.array([[1, 0, 1],
+                         [0, 1, 0],
+                         [1, 1, 1],
+                         [0, 0, 0],
+                         [1, 1, 0],
+                         [0, 1, 1]])
+
+        # class values
+        target = np.array([1, 0, 0, 1, 1, 1])
+
+        # Initialize feature weights.
+        weights = np.zeros(data.shape[1], dtype=np.int)
+
+        # distance function
+        dist_func = lambda w, x1, x2: np.sum(w*np.logical_xor(x1, x2), 1)
+        dist_weights = np.ones(data.shape[1])
+        dist_func_w = partial(dist_func, dist_weights)
+        
+        # Get next example index.
+        idx = 2 
+
+        # Compute distances to all other examples.
+        dists = dist_func_w(data[idx, :], data)
+
+        # Compare equality to results computed by hand.
+        assert_array_almost_equal(dists, np.array([1., 2., 0., 3., 1., 1.]), decimal=5)
+
+
+        # Compute mean and standard deviation of distances and set thresholds.
+        t_next = np.mean(dists[np.arange(data.shape[0]) != idx])
+        sigma_nxt = np.std(dists[np.arange(data.shape[0]) != idx])
+        thresh_near = t_next - sigma_nxt/2.0
+        thresh_far = t_next + sigma_nxt/2.0
+
+
+        # Compare equalities to results computed by hand.
+        self.assertEqual(t_next, 1.6)
+        self.assertEqual(sigma_nxt, 0.8)
+        self.assertAlmostEqual(thresh_near, 1.2, places=4)
+        self.assertAlmostEqual(thresh_far, 2.0, places=4)
+
+        # Get mask of examples that are close.
+        msk_close = dists < thresh_near
+        msk_close[idx] = False
+        
+
+        # Get mask of examples that are far.
+        msk_far = dists > thresh_far
+
+
+        # Compare equalities to results computed by hand.
+        assert_array_equal(msk_close, np.array([True, False, False, False, True, True]))
+        assert_array_equal(msk_far, np.array([False, False, False, True, False, False]))
+
+
+        # Get examples that are close.
+        examples_close = data[msk_close, :]
+        target_close = target[msk_close]
+
+        # Get examples that are far.
+        examples_far = data[msk_far, :]
+        target_far = target[msk_far]
+
+        # Get considered features of close examples.
+        features_close = data[idx, :] != examples_close
+        # Get considered features of far examples.
+        features_far = data[idx, :] == examples_far
+
+        # Get mask for close examples with same class.
+        msk_same_close = target_close == target[idx]
+
+        # Get mask for far examples with same class.
+        msk_same_far = target_far == target[idx]
+
+
+        ### WEIGHTS UPDATE ###
+
+        # Get penalty weights update values for close examples.
+        wu_close_penalty = np.sum(features_close[msk_same_close, :], 0)  # [0, 0, 0]
+        # Get reward weights update values for close examples.
+        wu_close_reward = np.sum(features_close[np.logical_not(msk_same_close), :], 0)  # [1, 1, 1]
+
+        # Get penalty weights update values for far examples.
+        wu_far_penalty = np.sum(features_far[msk_same_far, :], 0)
+        # Get reward weights update values for close examples.
+        wu_far_reward = np.sum(features_far[np.logical_not(msk_same_far), :], 0)
+
+        # Update weights.
+        weights = weights - (wu_close_penalty + wu_far_penalty) + (wu_close_reward + wu_far_reward)
+
+        # Compare equality to results computed by hand.
+        assert_array_almost_equal(weights, np.array([1, 1, 1]))
+
+
+
+######################################################
+
+## MULTISURF ALGORITHM IMPLEMENTATION UNIT TESTS ###
+
+from algorithms.multiSURF import MultiSURF
+
+class TestMultiSURF(unittest.TestCase):
+
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        multisurf = MultiSURF()
+        self.assertEqual(multisurf.n_features_to_select, 10)
+        self.assertNotEqual(multisurf.dist_func, None)
+        self.assertEqual(multisurf.learned_metric_func, None)
+
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        multisurf = MultiSURF(n_features_to_select=15, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(multisurf.n_features_to_select, 15)
+        self.assertNotEqual(multisurf.dist_func, None)
+        self.assertNotEqual(multisurf.learned_metric_func, None)
+
+
+    # Test computation of pairwise distance matrix using distance function that takes examples.    
+    def test_pairwise_distances_example(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        multisurf = MultiSURF()
+
+        # Initialize distance function.
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+
+        # Compute results using method.
+        dist_mat = multisurf._get_pairwise_distances(data=data, dist_func=dist_func, mode='example')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+    # Test computation of pairwise distance matrix using distance function that references examples
+    # by their indices.
+    def test_pairwise_distances_index(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        multisurf = MultiSURF()
+
+        # Initialize dummy distance function.
+        dist_func_learned_dummy = lambda data, i1, i2: np.sum(np.abs(data[i1, :]-data[i2, :]))
+        dist_func_learned_dummy = partial(dist_func_learned_dummy, data)
+        
+        # Compute results using method.
+        dist_mat = multisurf._get_pairwise_distances(data=data, dist_func=dist_func_learned_dummy, mode='index')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+    def test_critical_neighbours(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Compute distance matrix.
+        multisurf = MultiSURF()
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+        dist_mat = multisurf._get_pairwise_distances(data=data, dist_func=dist_func, mode='example')
+        
+        # Compute results using methods.
+        idx = 2
+        critical_neighbours = multisurf._critical_neighbours(idx, dist_mat)
+
+        # Assert equality to results computed by hand.
+        assert_array_equal(critical_neighbours, np.array([0, 4]))
+
+    def test_weights_update(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Class values
+        target = np.array([1, 2, 2, 1, 2, 1])
+        
+        # Initialize feature weights. 
+        weights = np.zeros(data.shape[1], dtype=float)
+
+
+
+        # Index of next example.
+        ex_idx = 2
+
+        # Compute distance matrix.
+        multisurf = MultiSURF()
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+        dist_mat = multisurf._get_pairwise_distances(data=data, dist_func=dist_func, mode='example')
+
+        # Get critical neighbours and mask of critical neighbours with same class.
+        r1 = multisurf._critical_neighbours(ex_idx, dist_mat)
+        r2 = target[r1] == target[ex_idx] 
+        neigh_data = np.vstack((r1, r2))
+
+
+        # Get classes of miss neighbours.
+        classes_other = (target[neigh_data[0]])[np.logical_not(neigh_data[1])]
+
+        # Get probabilities of miss classes.
+        u, c = np.unique(classes_other, return_counts=True)
+        # Compute weights of classes of miss neighbours.
+        class_to_weight = dict(zip(u, c/np.sum(c)))
+
+        # Compute weights multiplier vector.
+        weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
+        
+        # Compute maximum and minimum feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
+        
+        # Update weights.
+        weights = multisurf._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :].astype(np.bool), :],\
+                (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :].astype(np.bool)), :], weights, weights_mult, max_f_vals, min_f_vals)
+        correct_res = np.array([0.01445232, -0.03071705, -0.02560835])
+
+        # Assert equality to results computed by hand.
+        assert_array_almost_equal(weights, correct_res)
+
+
+######################################################
+
+
+## SURFSTAR ALGORITHM IMPLEMENTATION UNIT TESTS ######
+
+from algorithms.SURFStar import SURFStar
+
+class TestSURFStar(unittest.TestCase):
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        surfstar = SURFStar()
+        self.assertEqual(surfstar.n_features_to_select, 10)
+        self.assertNotEqual(surfstar.dist_func, None)
+        self.assertEqual(surfstar.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        surfstar = SURFStar(n_features_to_select=15, 
+                dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+
+        self.assertEqual(surfstar.n_features_to_select, 15)
+        self.assertNotEqual(surfstar.dist_func, None)
+        self.assertNotEqual(surfstar.learned_metric_func, None)
+
+    # Test computation of pairwise distance matrix using distance function that takes examples.    
+    def test_pairwise_distances_example(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        surfstar = SURFStar()
+
+        # Initialize distance function.
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
+
+        # Compute results using method.
+        dist_mat = surfstar._get_pairwise_distances(data=data, dist_func=dist_func, mode='example')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+    # Test computation of pairwise distance matrix using distance function that references examples
+    # by their indices.
+    def test_pairwise_distances_index(self):
+
+        # test data
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # Initialize algorithm.
+        surfstar = SURFStar()
+
+        # Initialize dummy distance function.
+        dist_func_learned_dummy = lambda data, i1, i2: np.sum(np.abs(data[i1, :]-data[i2, :]))
+        dist_func_learned_dummy = partial(dist_func_learned_dummy, data)
+        
+        # Compute results using method.
+        dist_mat = surfstar._get_pairwise_distances(data=data, dist_func=dist_func_learned_dummy, mode='index')
+
+        # Compare with result computed by hand.
+        correct_res = np.array([[0.0, 18.50046, 3.02458, 4.62169, 3.1642, 14.00284],
+                                [18.50046, 0.0, 15.68382, 18.16851, 17.37724, 8.0686],
+                                [3.02458, 15.68382, 0.0, 7.64627, 4.79296, 11.1862],
+                                [4.62169, 18.16851, 7.64627, 0.0, 2.85331, 13.6709],
+                                [3.1642, 17.37724, 4.79296, 2.85331, 0.0, 12.87962],
+                                [14.00284, 8.0686, 11.1862, 13.6709, 12.87962, 0.0]])
+
+        assert_array_almost_equal(dist_mat, correct_res, decimal=5)
+
+
+######################################################
+
+
+## MULTISURFSTAR ALGORITHM IMPLEMENTATION UNIT TESTS #
+
+from algorithms.multiSURFStar import MultiSURFStar
+
+class TestMultiSURFStar(unittest.TestCase):
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        multisurfstar = MultiSURFStar()
+        self.assertEqual(multisurfstar.n_features_to_select, 10)
+        self.assertNotEqual(multisurfstar.dist_func, None)
+        self.assertEqual(multisurfstar.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        multisurfstar = MultiSURFStar(n_features_to_select=15, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(multisurfstar.n_features_to_select, 15)
+        self.assertNotEqual(multisurfstar.dist_func, None)
+        self.assertNotEqual(multisurfstar.learned_metric_func, None)
+
+######################################################
 
 
 if __name__ == '__main__':

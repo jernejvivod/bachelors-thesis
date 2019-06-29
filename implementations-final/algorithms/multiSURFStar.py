@@ -102,10 +102,10 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
                 dists = dist_func(data[idx, :], data)
 
             # Compute mean and standard deviation of distances and set thresholds.
-            T_next = np.mean(dists[np.arange(data.shape[0] != idx)])
+            t_next = np.mean(dists[np.arange(data.shape[0] != idx)])
             sigma_nxt = np.std(dists[np.arange(data.shape[0]) != idx])
-            thresh_near = T_next - sigma_nxt/2.0
-            thresh_far = T_next + sigma_nxt/2.0
+            thresh_near = t_next - sigma_nxt/2.0
+            thresh_far = t_next + sigma_nxt/2.0
 
 
             # Get mask of examples that are close.

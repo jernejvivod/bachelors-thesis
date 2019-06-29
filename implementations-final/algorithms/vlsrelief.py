@@ -1,4 +1,10 @@
 import numpy as np
+import numpy as np
+from functools import partial
+from scipy.stats import rankdata
+
+from sklearn.base import BaseEstimator, TransformerMixin
+
 
 class VLSRelief(BaseEstimator, TransformerMixin):
     """sklearn compatible implementation of the vlsRelief algorithm
@@ -6,7 +12,10 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         Author: Jernej Vivod
     """
 
-    def __init__(self, num_partitions_to_select=10, num_subsets=10, partition_size=5, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, num_partitions_to_select=10, 
+            num_subsets=10, partition_size=5, m=-1, k=5, 
+            dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+        self.n_features_to_select = n_features_to_select  # number of features to select
         self.num_partitions_to_select = num_partitions_to_select  # number of partitions to combine to form subset of features
         self.num_subsets = num_subsets  # number of subsets to evaluate
         self.partition_size = partition_size  # size of partitions
@@ -29,12 +38,9 @@ class VLSRelief(BaseEstimator, TransformerMixin):
             self
         """
 
-        if self.learned_metric_func != None:
-            self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, self.num_subsets, 
-                    self.partition_size, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
-        else:
-            self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, self.num_subsets, 
-                    self.partition_size, self.m, self.k, self.dist_func)
+        self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
+                self.num_subsets, self.partition_size, self.m, self.k, self.dist_func, 
+                learned_metric_func=self.learned_metric_func)
         return self
 
 
@@ -67,7 +73,8 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         return self.transform(data)  # Perform feature selection
 
 
-    def _vlsrelief(self, data, target, num_partitions_to_select, num_subsets, partition_size, m, k, dist_func, learned_metric_func):
+    def _vlsrelief(self, data, target, num_partitions_to_select, num_subsets, 
+            partition_size, m, k, dist_func, learned_metric_func):
 
         """Compute feature scores and ranking using vlsRelief algorithm
 
@@ -100,21 +107,21 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         feat_ind_start_pos = np.arange(0, data.shape[1], partition_size)
 
         # Initialize ReliefF algorithm.
-        relieff = ReliefF(n_features_to_select=self.n_features_to_select, m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
+        relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
+                m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
 
         # Go over subsets and compute local ReliefF scores.
         for i in np.arange(num_subsets):
 
-            # randomly select k partitions and combine them to form a subset of features of examples.
-            ind_sel = np.ravel([np.arange(el, el+partition_size) for el in np.random.choice(feat_ind, num_partitions_to_select)])
+            # Randomly select k partitions and combine them to form a subset of features of examples.
+            ind_sel = np.ravel([np.arange(el, el+partition_size) for el in np.random.choice(feat_ind_start_pos, num_partitions_to_select)])
             ind_sel = sel[sel <= feat_ind[-1]]
             
             # Perform ReliefF algorithm on subset to obtain local weights.
-            relieff.fit(data[:, ind_sel], target[:, ind_sel])
-            local_weights_nxt = relieff.weights
+            relieff = relieff.fit(data[:, ind_sel], target[:, ind_sel])
 
             # Update weights using local weights.
-            weights[ind_sel] = np.maximum(weights[ind_sel], local_weights_nxt)
+            weights[ind_sel] = np.maximum(weights[ind_sel], relieff.weights)
 
 
         # Create array of feature enumerations based on score.

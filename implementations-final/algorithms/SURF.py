@@ -2,6 +2,8 @@ import numpy as np
 from scipy.stats import rankdata
 from functools import partial
 
+from sklearn.metrics import pairwise_distances
+
 import os
 import sys
 
@@ -18,7 +20,7 @@ class SURF(BaseEstimator, TransformerMixin):
     """
 
 
-    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.dist_func = dist_func                        # metric function
         self.learned_metric_func = learned_metric_func    # learned metric function
@@ -139,14 +141,14 @@ class SURF(BaseEstimator, TransformerMixin):
             pairwise_dist = self._get_pairwise_distances(data, dist_func, mode="example")
 
         # Get mean distance between all examples.
-        mean_dist = float(np.sum(pairwise_dist))/float(np.size(pairwise_dist))
+        mean_dist = np.mean(pairwise_dist)
 
         # Go over examples.
         for idx in np.arange(data.shape[0]):
 
             # Get neighbours within threshold.
             neigh_mask = pairwise_dist[idx, :] <= mean_dist
-            neigh_mask[idx, idx] = False
+            neigh_mask[idx] = False
 
             # Get mask of neighbours with same class.
             hit_neigh_mask = np.logical_and(neigh_mask, target == target[idx])
@@ -154,7 +156,7 @@ class SURF(BaseEstimator, TransformerMixin):
             miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
 
             # Update feature weights
-            self._update_weights(data, e, data[hit_neigh_mask, :], data[miss_neigh_mask, :], weights, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e, data[hit_neigh_mask, :], data[miss_neigh_mask, :], weights, max_f_vals, min_f_vals)
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')
