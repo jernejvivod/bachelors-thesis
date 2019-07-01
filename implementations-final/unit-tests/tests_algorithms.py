@@ -50,11 +50,11 @@ class TestRelief(unittest.TestCase):
         min_f_vals = np.min(data, 0)  # Min value of each feature
 
         # Compute weights update
-        res = np.round(relief._update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals), 5)
+        res = relief._update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
 
         # Compare with results computed by hand.
-        correct_res = np.round(np.array([1.004167277552613, 1.0057086828870614, 1.01971232778099]), 5)
-        self.assertSequenceEqual(res.tolist(), correct_res.tolist())
+        correct_res = np.array([1.004167277552613, 1.0057086828870614, 1.01971232778099])
+        assert_array_almost_equal(res, correct_res, decimal=5)
 
     # Test relief algorithm
     def test_relief(self):
@@ -73,14 +73,14 @@ class TestRelief(unittest.TestCase):
 
         # Get results of methods.
         res_rank = relief.rank
-        res_weights = np.round(relief.weights, 5)
+        res_weights = relief.weights
 
         # Compare with results computed by hand.
         correct_res_rank = np.array([1, 2, 3])
-        correct_res_weights = np.round(np.array([0.11295758, -0.23107757, -0.32095185]), 5)
+        correct_res_weights = np.array([0.11295758, -0.23107757, -0.32095185])
 
-        self.assertSequenceEqual(res_rank.tolist(), correct_res_rank.tolist())
-        self.assertSequenceEqual(res_weights.tolist(), correct_res_weights.tolist())
+        assert_array_almost_equal(res_rank, correct_res_rank)
+        assert_array_almost_equal(res_weights, correct_res_weights)
         
 
 ########################################################
@@ -137,13 +137,13 @@ class TestRelieff(unittest.TestCase):
         k = 2  # Number of examples from each class to take.
         max_f_vals = np.max(data, 0)  # Max value of each feature
         min_f_vals = np.min(data, 0)  # Min value of each feature
-        
+
         # Compute weights update
-        res = np.round(relieff._update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals), 5)
+        res = relieff._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
         # Compare with results computed by hand.
-        correct_res = np.round(np.array([ 0.01648752,  0.03281824, -0.01643311]), 5)
-        self.assertSequenceEqual(res.tolist(), correct_res.tolist())
+        correct_res = np.array([0.01648752,  0.03281824, -0.01643311])
+        assert_array_almost_equal(res, correct_res, decimal=5)
 
     # Test relieff algorithm
     def test_relieff(self):
@@ -164,14 +164,14 @@ class TestRelieff(unittest.TestCase):
 
         # Get results of methods.
         res_rank = relieff.rank
-        res_weights = np.round(relieff.weights, 5)
+        res_weights = relieff.weights
 
         # Compare with results computed by hand.
         correct_res_rank = np.array([2, 3, 1])
         correct_res_weights = np.array([-0.19887, -0.23507,  0.00803])
 
-        self.assertSequenceEqual(res_rank.tolist(), correct_res_rank.tolist())
-        self.assertSequenceEqual(res_weights.tolist(), correct_res_weights.tolist())
+        assert_array_equal(res_rank, correct_res_rank)
+        assert_array_almost_equal(res_weights, correct_res_weights, decimal=5)
 
 #########################################################
 
@@ -629,7 +629,8 @@ class TestSURF(unittest.TestCase):
         weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Update feature weights using method.
-        updated_weights = surf._update_weights(data, e, data[hit_neigh_mask, :], data[miss_neigh_mask, :], weights, max_f_vals, min_f_vals)
+        updated_weights = surf._update_weights(data, e[np.newaxis], data[hit_neigh_mask, :], 
+                data[miss_neigh_mask, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
                 
         # Results computed by hand.
         neigh_mask_correct = np.array([True, False, False, True, True, False])
@@ -996,10 +997,8 @@ class TestMultiSURF(unittest.TestCase):
         max_f_vals = np.max(data, 0)
         min_f_vals = np.min(data, 0)
 
-        
-        # Update weights.
-        weights = multisurf._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :].astype(np.bool), :],\
-                (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :].astype(np.bool)), :], weights, weights_mult, max_f_vals, min_f_vals)
+        weights = multisurf._update_weights(data, data[ex_idx, :][np.newaxis], (data[neigh_data[0, :], :])[neigh_data[1, :].astype(np.bool), :],\
+                (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :].astype(np.bool)), :], weights[np.newaxis], weights_mult[np.newaxis].T, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
         correct_res = np.array([0.01445232, -0.03071705, -0.02560835])
 
         # Assert equality to results computed by hand.
@@ -1120,6 +1119,186 @@ class TestMultiSURFStar(unittest.TestCase):
         self.assertNotEqual(multisurfstar.learned_metric_func, None)
 
 ######################################################
+
+
+## SWRFSTAR ALGORITHM IMPLEMENTATION UNIT TESTS ######
+
+from algorithms.swrfStar import SWRFStar
+
+class TestSWRFStar(unittest.TestCase):
+
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        swrfstar = SWRFStar()
+        self.assertEqual(swrfstar.n_features_to_select, 10)
+        self.assertEqual(swrfstar.m, -1)
+        self.assertNotEqual(swrfstar.dist_func, None)
+        self.assertEqual(swrfstar.learned_metric_func, None)
+
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        swrfstar = SWRFStar(n_features_to_select=15, m=80, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(swrfstar.n_features_to_select, 15)
+        self.assertEqual(swrfstar.m, 80)
+        self.assertNotEqual(swrfstar.dist_func, None)
+        self.assertNotEqual(swrfstar.learned_metric_func, None)
+
+
+    # Test update of feature weights.
+    def test_weights_update(self):
+
+        # examples and target values
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 2, 3, 1, 3, 2])
+        
+        # Initialize algorithm.
+        swrfstar = SWRFStar()
+
+        
+        # distance function
+        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1)
+
+        # Initialize feature weights.
+        weights = np.zeros(data.shape[1], dtype=np.float)
+        
+        # Get maximum and minimum feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
+        # Set m value to number of examples.
+        m = data.shape[0]
+
+        # Get all unique classes.
+        classes = np.unique(target)
+
+        # Get probabilities of classes in training set.
+        p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
+        p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
+
+
+        # index of next sampled example
+        idx = 2
+        # sampled example
+        e = data[idx, :]
+
+
+        # mask for selecting examples with same class
+        # that exludes currently sampled example.
+        same_sel = target == target[idx]
+        same_sel[idx] = False
+
+        # Get examples with same class and examples with a different class.
+        same = data[same_sel, :]
+        other = data[target != target[idx], :]
+        
+        # Get classes of examples with different classes.
+        target_other = target[target != target[idx]]
+
+        # Compute distances to examples with same class value.
+        distances_same = dist_func(e, same)
+
+        # Compute t and u parameter values for examples with same class value.
+        t_same = np.mean(distances_same)
+        u_same = np.std(distances_same)
+
+        # Compute distances to examples with a different class.
+        distances_other = dist_func(e, other)
+
+        # Compute t and u parameter values for examples with different class value.
+        t_other = np.mean(distances_other)
+        u_other = np.std(distances_other)
+
+        
+        # Compute weights for examples from same class.
+        neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + 1e-10)))
+        
+        # Compute weights for examples from different class.
+        neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10)))
+
+
+        # Get probabilities of classes not equal to class of sampled example.
+        p_classes_other = p_classes[p_classes[:, 0] != target[idx], 1]
+        
+        # Get probabilities of other classes.
+        classes_other = p_classes[p_classes[:, 0] != target[idx], 0]
+
+
+        # Compute diff sum weights for examples from different classes.
+        p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1][0])
+        
+        # Map weights to 'other' vector and construct weights multiplication vector.
+        weights_map = np.vstack((classes_other, p_weights)) 
+        weights_mult = np.array([weights_map[1, np.where(weights_map[0, :] == t)[0][0]] for t in target_other])
+       
+
+        # Compute updated weights using method.
+        weights = swrfstar._update_weights(data, e[np.newaxis], same, other, weights[np.newaxis], weights_mult[np.newaxis].T, 
+                neigh_weights_same[np.newaxis].T, neigh_weights_other[np.newaxis].T, m, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
+        
+        # results computed by hand
+        correct_res = np.array([0.00444562, -0.01373921, -0.03862486])
+        
+        # Assert equality with results computed by hand.
+        assert_array_almost_equal(weights, correct_res, decimal=5)
+
+######################################################
+
+
+## RELIEFSEQ ALGORITHM IMPLEMENTATION UNIT TESTS ######
+
+from algorithms.reliefseq import ReliefSeq
+
+class TestReliefSeq(unittest.TestCase):
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        reliefseq = ReliefSeq()
+        self.assertEqual(reliefseq.n_features_to_select, 10)
+        self.assertEqual(reliefseq.m, -1)
+        self.assertNotEqual(reliefseq.dist_func, None)
+        self.assertEqual(reliefseq.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        reliefseq = ReliefSeq(n_features_to_select=15, m=80, k_max=10, 
+                dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        self.assertEqual(reliefseq.n_features_to_select, 15)
+        self.assertEqual(reliefseq.m, 80)
+        self.assertEqual(reliefseq.k_max, 10)
+        self.assertNotEqual(reliefseq.dist_func, None)
+        self.assertNotEqual(reliefseq.learned_metric_func, None)
+
+    def test_weights_selection(self):
+        k_max = 3
+
+        # Initialize matrix of weights by k.
+        weights_mat = np.array([[2.09525, 0.26961, 3.99627],
+                                [9.86248, 6.22487, 8.77424],
+                                [7.03015, 9.24269, 3.02136],
+                                [8.95009, 8.52854, 0.16166],
+                                [3.41438, 4.03548, 7.88157],
+                                [2.01185, 0.84564, 6.16909],
+                                [2.79316, 1.71541, 2.97578],
+                                [3.22177, 0.16564, 5.79036],
+                                [1.81406, 2.74643, 2.13259],
+                                [4.77481, 8.01036, 7.57880]])
+        
+        # Select final weights from weights by k matrix.
+        weights = np.max(weights_mat, 1)
+        
+        # result computed by hand
+        correct_res = np.array([3.99627, 9.86248, 9.24269, 8.95009, 7.88157, 6.16909, 2.97578, 5.79036, 2.74643, 8.01036])
+
+        # Assert equality.
+        assert_array_almost_equal(weights, correct_res, decimal=5)
+
+#######################################################
 
 
 if __name__ == '__main__':

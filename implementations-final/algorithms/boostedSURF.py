@@ -7,9 +7,13 @@ from sklearn.metrics import pairwise_distances
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class BoostedSURF(BaseEstimator, TransformerMixin):
-    """sklearn compatible implementation of the boostedSURF algorithm
 
-        author: Jernej Vivod
+    """sklearn compatible implementation of the boostedSURF algorithm
+        
+    Gediminas Bertasius, Delaney Granizo-Mackenzie, Ryan Urbanowicz, Jason H. Moore.
+    Boosted Spatially Uniform ReliefF Algorithm for Genome-Wide Genetic Analysis.
+
+    author: Jernej Vivod
 
     """
 
@@ -33,8 +37,12 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, 
+                    learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func)
 
-        self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, learned_metric_func=self.learned_metric_func)
         return self
 
 
@@ -82,7 +90,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
         
@@ -99,7 +107,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
             
             # Recompute distance matrix.
             if np.mod(idx, phi) == 0:
-                dist_weights = np.maximum(weights, np.ones(data.shape[1]))
+                dist_weights = np.maximum(weights, np.ones(data.shape[1], dtype=np.float))
                 dist_func_w = partial(dist_func, dist_weights)
                 if 'learned_metric_func' in kwargs:
                     dist_func_w_learned = partial(kwargs['learned_metric_func'], dist_func_w)

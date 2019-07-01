@@ -17,7 +17,10 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the MultiSURF algorithm
 
-        author: Jernej Vivod
+    Ryan J. Urbanowicz, Randal S. Olson, Peter Schmitt, Melissa Meeker, Jason H. Moore.
+    Benchmarking Relief-Based Feature Selection Methods for Bioinformatics Data Mining.
+
+    author: Jernej Vivod
     """
 
     def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
@@ -27,7 +30,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_multisurf.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_multisurf2.jl")
 
 
 
@@ -42,7 +45,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
+        
         if self.learned_metric_func != None:
             self.rank, self.weights = self._multiSURF(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
@@ -74,8 +77,8 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
-        self.fit(data, target)  # Fit data
-        return self.transform(data)  # Perform feature selection
+        self.fit(data, target)  # Fit data.
+        return self.transform(data)  # Perform feature selection.
 
 
     def _get_pairwise_distances(self, data, dist_func, mode):
@@ -102,8 +105,8 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example":
            return pairwise_distances(data, metric=dist_func)
@@ -185,7 +188,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 
@@ -209,7 +212,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         p_classes[:, 1] = p_classes[:, 1]/np.sum(p_classes[:, 1])
 
         # Initialize feature weights.
-        weights = np.zeros(data.shape[1], dtype=float)
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Compute hits ans misses for each examples (within radius).
         # first row represents the indices of neighbors within threshold and the second row
@@ -240,8 +243,9 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
 
             # Update weights.
-            weights = self._update_weights(data, data[ex_idx, :], (data[neigh_data[0, :], :])[neigh_data[1, :], :],\
-                    (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :]), :], weights, weights_mult, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, data[ex_idx, :][np.newaxis], (data[neigh_data[0, :], :])[neigh_data[1, :], :],
+                    (data[neigh_data[0, :], :])[np.logical_not(neigh_data[1, :]), :], weights[np.newaxis], 
+                    weights_mult[np.newaxis].T, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
         # Rank weights and return.
         # Create array of feature enumerations based on score.

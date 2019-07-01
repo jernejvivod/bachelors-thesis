@@ -9,11 +9,14 @@ class IRelief(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the i-relief algorithm
 
+    Yijun Sun. Iterative RELIEF for Feature Weighting: Algorithms, Theories, and Applications.
+
     Author: Jernej Vivod
 
     """
     
-    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), 
+            max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.dist_func = dist_func                        # distance function to use
         self.max_iter = max_iter                          # Maximum number of iterations
@@ -34,7 +37,13 @@ class IRelief(BaseEstimator, TransformerMixin):
             self
         """
         # Fit training data.
-        self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func)
+
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, 
+                    self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, 
+                    self.conv_condition, self.initial_w_div)
 
         # Return reference to self.
         return self
@@ -93,8 +102,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func) 
@@ -116,7 +125,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
        
         # Allocate matrix for storing results.
-        mean_m = np.empty(data.shape, dtype=float)
+        mean_m = np.empty(data.shape, dtype=np.float)
 
         # Go over rows of pairwise differences.
         for idx in np.arange(data.shape[0]):
@@ -139,7 +148,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
        
         # Allocate matrix for storing results.
-        mean_h = np.empty(data.shape, dtype=float)
+        mean_h = np.empty(data.shape, dtype=np.float)
 
         # Go over rows of pairwise differences.
         for idx in np.arange(data.shape[0]):
@@ -163,7 +172,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
 
         # Allocate array for storing results.
-        po_vals = np.empty(dist_mat.shape[0], dtype=float)
+        po_vals = np.empty(dist_mat.shape[0], dtype=np.float)
 
         # Go over rows of distance matrix.
         for idx, r in enumerate(dist_mat):

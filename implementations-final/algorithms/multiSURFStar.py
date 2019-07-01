@@ -7,9 +7,13 @@ from sklearn.metrics import pairwise_distances
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class MultiSURFStar(BaseEstimator, TransformerMixin):
+
     """sklearn compatible implementation of the MultiSURFStar algorithm
 
-        author: Jernej Vivod
+    Granizo-Mackenzie Delaney; Moore, Jason H.
+    Multiple Threshold Spatially Uniform ReliefF for the Genetic Analysis of Complex Human Diseases. 
+
+    author: Jernej Vivod
 
     """
 
@@ -32,7 +36,10 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         """
         
         # Fit training data.
-        self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func)
 
         return self
 

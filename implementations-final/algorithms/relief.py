@@ -17,21 +17,25 @@ jl = Julia(compiled_modules=False)
 class Relief(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the Relief algorithm
-        
-       Author: Jernej Vivod
+
+    Kenji Kira, Larry A. Rendell.
+    The Feature Selection Problem: Traditional Methods and a New Algorithm.
+    
+    Author: Jernej Vivod
+
     """
 
     # Constructor: initialize learner
     def __init__(self, n_features_to_select=10, m=-1, dist_func=lambda x1, x2: np.sum(np.abs(x1 - x2), 1), learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select  # Number of features to select
-        self.m = m  # Number of examples to sample
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.m = m                                        # number of examples to sample
         self.dist_func = dist_func  # distance function to use when searching for nearest neighbours
-        self.learned_metric_func = learned_metric_func  # Learned metric function (is set to None if not using metric learning)
+        self.learned_metric_func = learned_metric_func  # learned metric function (is set to None if not using metric learning)
 
         # Use function written in the Julia programming language to update weights.
 
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief2.jl")
 
     def fit(self, data, target):
         """
@@ -110,12 +114,12 @@ class Relief(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-             Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+             Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
         """
 
 
         # Initialize all weights to zero.
-        weights = np.zeros(data.shape[1], dtype=float)
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Get maximum and minimum values of each feature
         max_f_vals = np.amax(data, axis=0)
@@ -134,7 +138,7 @@ class Relief(BaseEstimator, TransformerMixin):
             msk = np.array(list(map(lambda x: True if x == target[idx] else False, target)))  # Get mask for examples with same class.
 
             # Get index of sampled example in subset of examples with same class.
-            idx_subset = idx - sum(~msk[:idx+1])
+            idx_subset = idx - npnp..sum(~msk[:idx+1])
 
             # Find nearest hit and nearest miss.
             if 'learned_metric_func' in kwargs:  # If operating in learned metric space.

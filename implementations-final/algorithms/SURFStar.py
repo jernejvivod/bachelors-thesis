@@ -16,17 +16,22 @@ class SURFStar(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the SURFStar algorithm
 
-        Author: Jernej Vivod
+    Casey S. GreeneDaniel S. HimmelsteinJeff KiralisJason H. Moore.
+    The Informative Extremes: Using Both Nearest and Farthest Individuals Can 
+    Improve Relief Algorithms in the Domain of Human Genetics.
+
+    Author: Jernej Vivod
+
     """
 
-    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.dist_func = dist_func                        # metric function
         self.learned_metric_func = learned_metric_func    # learned metric function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surfstar.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surfstar2.jl")
 
 
     def fit(self, data, target):
@@ -41,9 +46,12 @@ class SURFStar(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-        
-        self.rank, self.weights = self._surf(data, target, self.dist_func, 
-                learned_metric_func=self.learned_metric_func)
+        if self.learned_metric_func != None: 
+            self.rank, self.weights = self._surfStar(data, target, self.dist_func, 
+                    learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._surfStar(data, target, self.dist_func)
+
         return self
 
 
@@ -105,8 +113,8 @@ class SURFStar(BaseEstimator, TransformerMixin):
         # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func)
@@ -133,7 +141,7 @@ class SURFStar(BaseEstimator, TransformerMixin):
         """
 
         # Initialize feature weights.
-        weights = np.zeros(data.shape[1])
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Compute weighted pairwise distances.
         if 'learned_metric_func' in kwargs:
@@ -145,16 +153,23 @@ class SURFStar(BaseEstimator, TransformerMixin):
 
         # Get mean distance between all examples.
         mean_dist = np.float(np.sum(pairwise_dist))/np.float(np.size(pairwise_dist))
+        
+        # Compute maximal and minimal feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
 
         # Go over examples.
         for idx in np.arange(data.shape[0]):
+
            
+            # Select next example.
+            e = data[idx, :]
 
             ### NEIGHBOUR INDICES ###
 
             # Get indices of near neighbours.
             neigh_mask_near = pairwise_dist[idx, :] <= mean_dist
-            neigh_mask_near[idx, idx] = False  # Set value at index refering to current example to False.
+            neigh_mask_near[idx] = False  # Set value at index refering to current example to False.
             
             # Get indices of far neighbours.
             neigh_mask_far = pairwise_dist[idx, :] > mean_dist
@@ -181,12 +196,12 @@ class SURFStar(BaseEstimator, TransformerMixin):
             ### WEIGHTS UPDATE ###
 
             # Update feature weights for near examples.
-            weights_near = self._update_weights_near(data, e, data[hit_neigh_mask_near, :], 
-                    data[miss_neigh_mask_near, :], weights, max_f_vals, min_f_vals)
+            weights_near = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_near, :], 
+                    data[miss_neigh_mask_near, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
             # Update feature weights for far examples.
-            weights_far = self._update_weights_far(data, e, data[hit_neigh_mask_far, :], 
-                    data[miss_neigh_mask_far, :], weights, max_f_vals, min_f_vals)
+            weights_far = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_far, :], 
+                    data[miss_neigh_mask_far, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
             
             # Subtract scoring for far examples. Subtract previous value of weights to get delta.
             weights = weights_near - (weights_far - weights)

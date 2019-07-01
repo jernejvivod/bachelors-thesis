@@ -1,14 +1,24 @@
 import numpy as np
 from algorithms.relieff import Relieff
 
+from scipy.stats import rankdata
+
+from sklearn.base import BaseEstimator, TransformerMixin
+
 class ReliefSeq(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the ReliefSeq algorithm
 
-        Author: Jernej Vivod
+    Brett A. McKinney, Bill C. White, Diane E. Grill, Peter W. Li, Richard B. Kennedy, Gregory A. Poland, Ann L. Oberg.
+    ReliefSeq: A Gene-Wise Adaptive-K Nearest-Neighbor Feature Selection Tool 
+    for Finding Gene-Gene Interactions and Main Effects in mRNA-Seq Gene Expression Data.
+
+    Author: Jernej Vivod
+
     """
 
-    def __init__(self, n_features_to_select=10, m=-1, k_max=10, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, m=-1, k_max=10, 
+            dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select.
         self.m = m                                        # sample size of examples for the ReliefF algorithm
         self.k_max = k_max                                # maximal k value
@@ -30,7 +40,8 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
         """
 
         # Fit training data.
-        self.rank, self.weights = self._reliefseq(data, target, self.m, self.k_max, self.dist_func, learned_metric_func=self.learned_metric_func)
+        self.rank, self.weights = self._reliefseq(data, target, self.m, self.k_max, 
+                self.dist_func, learned_metric_func=self.learned_metric_func)
 
         return self
 

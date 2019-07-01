@@ -16,7 +16,10 @@ class SURF(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the SURF algorithm
 
-        Author: Jernej Vivod
+    Casey S Greene, Nadia M Penrod, Jeff Kiralis, Jason H Moore. 
+    Spatially Uniform ReliefF (SURF) for computationally-efficient filtering of gene-gene interactions
+
+    Author: Jernej Vivod
     """
 
 
@@ -27,7 +30,7 @@ class SURF(BaseEstimator, TransformerMixin):
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surf.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surf2.jl")
 
 
 
@@ -42,11 +45,12 @@ class SURF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-        
+       
         if self.learned_metric_func != None:
             self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._surf(data, target, self.dist_func)
+
         return self
 
 
@@ -103,8 +107,8 @@ class SURF(BaseEstimator, TransformerMixin):
         # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
         elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func)
@@ -125,12 +129,12 @@ class SURF(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 
         # Initialize feature weights.
-        weights = np.zeros(data.shape[1])
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Compute weighted pairwise distances.
         if 'learned_metric_func' in kwargs:
@@ -156,7 +160,8 @@ class SURF(BaseEstimator, TransformerMixin):
             miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
 
             # Update feature weights
-            weights = self._update_weights(data, e, data[hit_neigh_mask, :], data[miss_neigh_mask, :], weights, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask, :], 
+                    data[miss_neigh_mask, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')

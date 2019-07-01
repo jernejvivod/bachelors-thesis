@@ -16,19 +16,22 @@ class Relieff(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the ReliefF algorithm
     
-        Author: Jernej Vivod
+    Igor Kononenko, Edvard Simec, Marko Robnik-Sikonja.
+    Overcoming the myopia of inductive learning algorithms with RELIEFF.
+    
+    Author: Jernej Vivod
     """
    
     def __init__(self, n_features_to_select=10, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select
-        self.m = m
-        self.k = k
-        self.dist_func = dist_func
-        self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.m = m                                        # example sample size
+        self.k = k                                        # the k parameter
+        self.dist_func = dist_func                        # distance function
+        self.learned_metric_func = learned_metric_func    # learned distance function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff2.jl")
 
 
     def fit(self, data, target):
@@ -114,12 +117,12 @@ class Relieff(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 
-        # Initialize all weights to 0.
-        weights = np.zeros(data.shape[1], dtype=float)
+        # Initialize feature weights.
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Get indices of examples in sample.
         idx_sampled = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
@@ -152,7 +155,7 @@ class Relieff(BaseEstimator, TransformerMixin):
             if 'learned_metric_func' in kwargs:
 
                 # Partially apply distance function.
-                dist = partial(kwargs['learned_metric_func'], dist_func, int(idx))
+                dist = partial(kwargs['learned_metric_func'], dist_func, np.int(idx))
 
                 # Compute distances to examples from same class in learned metric space.
                 distances_same = dist(np.where(target == target[idx])[0])
@@ -171,11 +174,11 @@ class Relieff(BaseEstimator, TransformerMixin):
                 distances_same[idx_class] = np.inf
 
                 # Find closest examples from same class.
-                idxs_closest_same = np.argpartition(distances_same, k)[:k] #
-                closest_same = (data[target == target[idx], :])[idxs_closest_same, :] #
+                idxs_closest_same = np.argpartition(distances_same, k)[:k]
+                closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
 
             # Allocate matrix template for getting nearest examples from other classes.
-            closest_other = np.zeros((k * (len(classes) - 1), data.shape[1])) #
+            closest_other = np.empty((k * (len(classes) - 1), data.shape[1]), dtype=np.float)
 
             # Initialize pointer for adding examples to template matrix.
             top_ptr = 0
@@ -203,8 +206,10 @@ class Relieff(BaseEstimator, TransformerMixin):
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
 
+
             # ------ weights update ------
-            weights = self._update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
+            weights = np.array(self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis],
+                    weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
        
 
         # Create array of feature enumerations based on score.

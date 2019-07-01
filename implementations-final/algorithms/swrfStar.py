@@ -15,19 +15,22 @@ jl = Julia(compiled_modules=False)
 class SWRFStar(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the ReliefF algorithm
+
+    Matthew E Stokes, Shyam Visweswaran. 
+    Application of a spatially-weighted Relief algorithm for ranking genetic predictors of disease.
     
         Author: Jernej Vivod
     """
    
     def __init__(self, n_features_to_select=10, m=-1, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select
-        self.m = m
-        self.dist_func = dist_func
-        self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.m = m                                        # number of examples to sample
+        self.dist_func = dist_func                        # distance function
+        self.learned_metric_func = learned_metric_func    # learned metric function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_swrfstar.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_swrfstar2.jl")
 
 
     def fit(self, data, target):
@@ -42,10 +45,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             self
         """
 
-        if self.learned_metric_func != None:
-            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
-        else:
-            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func)
+        self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
         return self
 
 
@@ -77,6 +77,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection
 
+
     def _swrfstar(self, data, target, m, dist_func, **kwargs):
 
         """Compute feature scores using ReliefF algorithm
@@ -93,14 +94,14 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 
-        # Initialize all weights to 0.
-        weights = np.zeros(data.shape[1], dtype=float)
+        # Initialize feature weights.
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
-        # Get indices of examples in sample.
+        # Get indices of examples in sample of examples.
         idx_sampled = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
         
         # Set m if currently set to signal value -1.
@@ -122,9 +123,14 @@ class SWRFStar(BaseEstimator, TransformerMixin):
 
             # Get next example.
             e = data[idx, :]
+
+            # mask for selecting examples with same class
+            # that exludes currently sampled example.
+            same_sel = target == target[idx]
+            same_sel[idx] = False
             
             # examples with same class value
-            same = data[target == target[idx], :]
+            same = data[same_sel, :]
 
             # examples with different class value
             other = data[target != target[idx], :]
@@ -132,57 +138,39 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             # class values of examples with different class value
             target_other = target[target != target[idx]]
 
-            # Get index of next sampled example in group of examples with same class.
-            idx_class = idx - np.sum(target[:idx] != target[idx])
-          
             # If keyword argument with keyword 'learned_metric_func' exists...
             if 'learned_metric_func' in kwargs:
 
                 # Partially apply distance function.
-                dist = partial(kwargs['learned_metric_func'], dist_func, int(idx))
+                dist = partial(kwargs['learned_metric_func'], dist_func, np.int(idx))
 
                 # Compute distances to examples from same class in learned metric space.
-                distances_same = dist(np.where(target == target[idx])[0])
-
-                # Compute t and u parameter values.
-                t_same = np.mean(distances_same)
-                u_same = np.std(distances_same)
-
-                # Compute distances to examples from different class in learned metric space.
-                distances_other = dist(np.where(target != target[idx])[0])
-
-                # Compute t and u parameter values.
-                t_other = np.mean(distances_other)
-                u_other = np.std(distances_other)
-
-                # Compute weights for examples from same class.
-                neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0)))
-                
-                # Compute weights for examples from different class.
-                neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_same)/(u_other/4.0)))
-
-
+                distances_same = dist(np.where(same_sel)[0])
             else:
-
                 # Compute distances to examples with same class value.
                 distances_same = dist_func(e, same)
 
-                # Compute t and u parameter values
-                t_same = np.mean(distances_same)
-                u_same = np.std(distances_same)
+            # Compute t and u parameter values.
+            t_same = np.mean(distances_same)
+            u_same = np.std(distances_same)
 
+            if 'learned_metric_func' in kwargs:
+                # Compute distances to examples from different class in learned metric space.
+                distances_other = dist(np.where(target != target[idx])[0])
+            else:
                 # Compute distances to examples with different class value.
                 distances_other = dist_func(e, other)
 
-                # Compute t and u parameter values
-                t_other = np.mean(distances_other)
-                u_other = np.std(distances_other)
+            # Compute t and u parameter values.
+            t_other = np.mean(distances_other)
+            u_other = np.std(distances_other)
 
-                # Compute weights for examples from same class.
-                neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0)))
-                
-                # Compute weights for examples from different class.
-                neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_same)/(u_other/4.0)))
+
+            # Compute weights for examples from same class.
+            neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + 1e-10)))
+            
+            # Compute weights for examples from different class.
+            neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10)))
 
 
             # Get probabilities of classes not equal to class of sampled example.
@@ -196,10 +184,14 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             
             # Map weights to 'other' vector and construct weights vector.
             weights_map = np.vstack((classes_other, p_weights))
-            weights_mult = weights_map[1, target_other]
+            
+            # Construct weights multiplication vector.
+            weights_mult = np.array([weights_map[1, np.where(weights_map[0, :] == t)[0][0]] for t in target_other])
 
             # ------ weights update ------
-            weights = self._update_weights(data, e, same, other, weights, weights_mult, neigh_weights_same, neigh_weights_other, m, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e[np.newaxis], same, other, weights[np.newaxis], 
+                    weights_mult[np.newaxis].T, neigh_weights_same[np.newaxis].T, neigh_weights_other[np.newaxis].T, 
+                    m, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
        
 
         # Create array of feature enumerations based on score.

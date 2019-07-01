@@ -2,13 +2,16 @@ class TURF(baseEstimator, transformerMixin):
 
     """sklearn compatible implementation of the TURF algorithm
 
-        Author: Jernej Vivod
+    Jason H. Moore, Bill C. White.
+    Tuning ReliefF for Genome-Wide Genetic Analysis.
+
+    Author: Jernej Vivod
     """
 
     def __init__(self, n_features_to_select, num_it, rba):
-        self._n_features_to_select = n_features_to_select
-        self._num_it = num_it
-        self._rba = rba
+        self._n_features_to_select = n_features_to_select  # number of features to select
+        self._num_it = num_it                              # number of iterations to perform
+        self._rba = rba                                    # relief-based algorithm to use
 
 
     def fit(self, data, target):
@@ -82,7 +85,7 @@ class TURF(baseEstimator, transformerMixin):
         sel_final = np.arange(data.shape[1])
        
         # Initialize feature weights.
-        weights = np.zeros(data.shape[1])
+        weights = np.zeros(data.shape[1], dtype=np.float)
         
         # iteration loop
         for it in np.arange(num_it):

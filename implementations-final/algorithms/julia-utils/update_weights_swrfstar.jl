@@ -9,7 +9,7 @@ function update_weights(data, e, same, other, weights, weights_mult, neigh_weigh
 		reward = sum(neigh_weights_other.*(weights_mult .* (abs.(e[t] .- other[:, t])/((max_f_vals[t] .- min_f_vals[t] .+ 1e-10)))))
 
 		# Weights update
-		weights[t] = weights[t] - penalty/(m*same.shape[0]) + reward/(m*other.shape[0])
+		weights[t] = weights[t] - penalty/(m*size(same, 1)) + reward/(m*size(other, 1))
 	end
 
 	# Return updated weights.

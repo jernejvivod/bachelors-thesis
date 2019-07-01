@@ -8,8 +8,11 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 class VLSRelief(BaseEstimator, TransformerMixin):
     """sklearn compatible implementation of the vlsRelief algorithm
+
+    Margaret J. Eppstein, Paul Haake.
+    Very large scale ReliefF for genome-wide association analysis.
     
-        Author: Jernej Vivod
+    Author: Jernej Vivod
     """
 
     def __init__(self, n_features_to_select=10, num_partitions_to_select=10, 
@@ -37,10 +40,13 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
-        self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
-                self.num_subsets, self.partition_size, self.m, self.k, self.dist_func, 
-                learned_metric_func=self.learned_metric_func)
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
+                    self.num_subsets, self.partition_size, self.m, self.k, self.dist_func, 
+                    learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
+                    self.num_subsets, self.partition_size, self.m, self.k, self.dist_func)
         return self
 
 
@@ -54,6 +60,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
+
         # select n_features_to_select best features and return selected features.
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
@@ -69,6 +76,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection 
         """
+
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection
 
@@ -93,7 +101,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
             metric space.
 
         Returns:
-            Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
+            Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
 
         """
 
@@ -107,8 +115,12 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         feat_ind_start_pos = np.arange(0, data.shape[1], partition_size)
 
         # Initialize ReliefF algorithm.
-        relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
-                m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
+        if 'learned_metric_func' in kwargs:
+            relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
+                    m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
+        else:
+            relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
+                    m=m, k=k, dist_func=dist_func)
 
         # Go over subsets and compute local ReliefF scores.
         for i in np.arange(num_subsets):

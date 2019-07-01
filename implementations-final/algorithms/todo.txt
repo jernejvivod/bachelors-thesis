@@ -1,7 +1,5 @@
 docstring for algorithms ... returns weights and rank
 
-weights updates (Julia functions) without loops
-
 fix reliefmms weight updates
 
 dtype=... when initializing weights and other things.
