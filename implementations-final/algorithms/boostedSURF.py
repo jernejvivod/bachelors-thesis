@@ -78,11 +78,12 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
     def _boostedSURF(self, data, target, phi, dist_func, **kwargs):
 
-        """Compute feature scores using multiSURFStar algorithm
+        """Compute feature scores using boostedSURF algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows
             target : Array[np.int] -- matrix containing the example's target variable value
+            phi: int -- parameter specifying number of iterations before recomputing distance weights
             dist_func : Callable[[Array[np.float64], Array[np.float64]], Array[np.float64]] -- function for evaluating
             distances between examples. The function should acept two examples or two matrices of examples and return the dictances.
             **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance
@@ -103,7 +104,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
         # Initialize weights.
         weights = np.zeros(data.shape[1], dtype=np.int)
 
-        for idx in data.shape[0]:
+        for idx in np.arange(data.shape[0]):
             
             # Recompute distance matrix.
             if np.mod(idx, phi) == 0:

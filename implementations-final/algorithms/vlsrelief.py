@@ -5,6 +5,8 @@ from scipy.stats import rankdata
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
+from algorithms.relieff import Relieff
+
 
 class VLSRelief(BaseEstimator, TransformerMixin):
     """sklearn compatible implementation of the vlsRelief algorithm
@@ -82,7 +84,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
 
 
     def _vlsrelief(self, data, target, num_partitions_to_select, num_subsets, 
-            partition_size, m, k, dist_func, learned_metric_func):
+            partition_size, m, k, dist_func, **kwargs):
 
         """Compute feature scores and ranking using vlsRelief algorithm
 
@@ -116,10 +118,10 @@ class VLSRelief(BaseEstimator, TransformerMixin):
 
         # Initialize ReliefF algorithm.
         if 'learned_metric_func' in kwargs:
-            relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
+            relieff = Relieff(n_features_to_select=self.n_features_to_select, 
                     m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
         else:
-            relieff = ReliefF(n_features_to_select=self.n_features_to_select, 
+            relieff = Relieff(n_features_to_select=self.n_features_to_select, 
                     m=m, k=k, dist_func=dist_func)
 
         # Go over subsets and compute local ReliefF scores.
@@ -127,10 +129,10 @@ class VLSRelief(BaseEstimator, TransformerMixin):
 
             # Randomly select k partitions and combine them to form a subset of features of examples.
             ind_sel = np.ravel([np.arange(el, el+partition_size) for el in np.random.choice(feat_ind_start_pos, num_partitions_to_select)])
-            ind_sel = sel[sel <= feat_ind[-1]]
+            ind_sel = ind_sel[ind_sel <= feat_ind[-1]]
             
             # Perform ReliefF algorithm on subset to obtain local weights.
-            relieff = relieff.fit(data[:, ind_sel], target[:, ind_sel])
+            relieff = relieff.fit(data[:, ind_sel], target)
 
             # Update weights using local weights.
             weights[ind_sel] = np.maximum(weights[ind_sel], relieff.weights)

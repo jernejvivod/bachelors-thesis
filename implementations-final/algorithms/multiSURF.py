@@ -50,6 +50,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             self.rank, self.weights = self._multiSURF(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._multiSURF(data, target, self.dist_func)
+        return self
 
 
     def transform(self, data):

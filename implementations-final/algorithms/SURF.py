@@ -136,6 +136,10 @@ class SURF(BaseEstimator, TransformerMixin):
         # Initialize feature weights.
         weights = np.zeros(data.shape[1], dtype=np.float)
 
+        # Get maximal and minimal feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
         # Compute weighted pairwise distances.
         if 'learned_metric_func' in kwargs:
             dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
@@ -160,7 +164,7 @@ class SURF(BaseEstimator, TransformerMixin):
             miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
 
             # Update feature weights
-            weights = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask, :], 
+            weights = self._update_weights(data, data[idx, :][np.newaxis], data[hit_neigh_mask, :], 
                     data[miss_neigh_mask, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
         # Create array of feature enumerations based on score.

@@ -20,18 +20,19 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
     """
    
     def __init__(self, n_features_to_select=10, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
-        self.n_features_to_select = n_features_to_select
-        self.m = m
-        self.k = k
-        self.dist_func = dist_func
-        self.learned_metric_func = learned_metric_func
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.m = m                                        # examples sample size
+        self.k = k                                        # number of nearest neighbours from each class to find
+        self.dist_func = dist_func                        # distance function
+        self.learned_metric_func = learned_metric_func    # learned metric function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_reliefmms2.jl")
 
 
     def fit(self, data, target):
+
         """
         Rank features using relief feature selection algorithm
 
@@ -43,11 +44,17 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
             self
         """
 
-        self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
+        # Fit training data.
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._reliefmms(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._reliefmms(data, target, self.m, self.k, self.dist_func)
+
         return self
 
 
     def transform(self, data):
+
         """
         Perform feature selection using computed feature ranks
 
@@ -57,12 +64,14 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
+
         # select n_features_to_select best features and return selected features.
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
 
 
     def fit_transform(self, data, target):
+
         """
         Compute ranks of features and perform feature selection
         Args:
@@ -72,8 +81,9 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection 
         """
-        self.fit(data, target)  # Fit data
-        return self.transform(data)  # Perform feature selection
+
+        self.fit(data, target)  # Fit data.
+        return self.transform(data)  # Perform feature selection.
 
 
     # update_weights: go over features and update weights.
@@ -95,7 +105,7 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
     #     return weights
 
 
-    def _relieff(self, data, target, m, k, dist_func, **kwargs):
+    def _reliefmms(self, data, target, m, k, dist_func, **kwargs):
 
         """Compute feature scores using Reliefmms algorithm
 
@@ -191,6 +201,50 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
                     # Add found closest examples to matrix.
                     closest_other[top_ptr:top_ptr+k, :] = (data[target == cl, :])[idx_closest_cl, :]
                     top_ptr = top_ptr + k
+          
+
+
+            ### MARKING CONSIDERED FEATURES ###
+            
+            # For each feature compute mean distance by other features.
+
+            # get diagonal mask for diagonals of expanded neighbour examples.
+            diag_msk = np.eye(data.shape[1], dtype=np.bool)
+            diag_msk_expanded_same = np.tile(diag_msk, (k, 1))
+            diag_msk_expanded_other = np.tile(diag_msk, (k*(classes.size-1), 1))
+            
+            # Expand currently samples example.
+            e_expanded = np.tile(e, (e.size, 1))
+            np.fill_diagonal(e_expanded, 0.0)
+            e_expanded_same = np.tile(e_expanded, (k, 1))
+            e_expanded_other = np.tile(e_expanded, (k*(classes.size-1), 1))
+            
+            # Expand near hits and set diagonals to zero.
+            closest_same_expanded = np.repeat(closest_same, closest_same.shape[1], axis=0)
+            closest_same_expanded[diag_msk_expanded_same] = 0.0
+
+            # Expand near misses and set diagonals to zero.
+            closest_other_expanded = np.repeat(closest_other, closest_other.shape[1], axis=0)
+            closest_other_expanded[diag_msk_expanded_other] = 0.0
+            
+            # Compute DM values and DIFF values for each feature of each neighbour.
+            # nearest hits:
+            dm_vals_same = np.reshape(np.sum(np.abs(e_expanded_same - closest_same_expanded)/\
+                    (max_f_vals - min_f_vals), 1)/np.float(data.shape[1]-1), (k, data.shape[1]))
+            diff_vals_same = np.abs(e - closest_same)/(max_f_vals - min_f_vals)
+            
+            # nearest misses:
+            dm_vals_other = np.reshape(np.sum(np.abs(e_expanded_other - closest_other_expanded)/\
+                    (max_f_vals - min_f_vals), 1)/np.float(data.shape[1]-1), (k*(classes.size-1), data.shape[1]))
+            diff_vals_other = np.abs(e - closest_other)/(max_f_vals - min_f_vals)
+
+            
+            # Compute masks for considered features of nearest hits and nearest misses.
+            features_msk_same = diff_vals_same > dm_vals_same
+            features_msk_other = diff_vals_other > dm_vals_other
+            
+            ###################################
+
 
 
             # Get probabilities of classes not equal to class of sampled example.
@@ -201,7 +255,8 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
 
             # ------ weights update ------
-            weights = self._update_weights(data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals)
+            weights = self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k, 
+                    max_f_vals[np.newaxis], min_f_vals[np.newaxis], features_msk_same, features_msk_other)
        
 
         # Create array of feature enumerations based on score.

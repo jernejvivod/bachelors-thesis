@@ -37,9 +37,9 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         
         # Fit training data.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._multisurfstar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._multiSURFStar(data, target, self.dist_func)
+            self.rank, self.weights = self._multisurfstar(data, target, self.dist_func)
 
         return self
 
@@ -95,11 +95,11 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
         # Initialize weights.
         weights = np.zeros(data.shape[1], dtype=np.float)
 
-        for idx in data.shape[0]:
+        for idx in np.arange(data.shape[0]):
 
             # Get next example
-            e = data[row_idx, :]
-            target_e = target[row_idx]
+            e = data[idx, :]
+            target_e = target[idx]
 
             # Compute distances from current examples to all other examples.
             if 'learned_metric_func' in kwargs:
@@ -128,7 +128,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             target_close = target[msk_close]
             
             # Get examples that are far.
-            examples_far = data[msk_fat, :]
+            examples_far = data[msk_far, :]
             target_far = target[msk_far]
 
             # Get considered features of close examples.

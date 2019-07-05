@@ -1,4 +1,11 @@
-class TURF(baseEstimator, transformerMixin):
+import numpy as np
+
+from sklearn.base import BaseEstimator, TransformerMixin
+
+from scipy.stats import rankdata
+from algorithms.relieff import Relieff
+
+class TURF(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the TURF algorithm
 
@@ -8,7 +15,7 @@ class TURF(baseEstimator, transformerMixin):
     Author: Jernej Vivod
     """
 
-    def __init__(self, n_features_to_select, num_it, rba):
+    def __init__(self, n_features_to_select=10, num_it=50, rba=Relieff()):
         self._n_features_to_select = n_features_to_select  # number of features to select
         self._num_it = num_it                              # number of iterations to perform
         self._rba = rba                                    # relief-based algorithm to use
@@ -28,7 +35,7 @@ class TURF(baseEstimator, transformerMixin):
         """
 
         self.rank, self.weights = self._turf(data, target, self._num_it, self._rba)
-
+        return self
 
     def transform(self, data):
 
@@ -79,35 +86,38 @@ class TURF(baseEstimator, transformerMixin):
         """
         
         # number of features with lowest weights to remove in each iteration (num_iterations/a).
-        feat_to_remove = np.int(np.ceil(np.float(num_it)/np.float(data.shape[1])))
+        num_to_remove = np.int(np.ceil(np.float(num_it)/np.float(data.shape[1])))
 
         # Indices of features weighted by the final weights in the original data matrix.
         sel_final = np.arange(data.shape[1])
        
         # Initialize feature weights.
         weights = np.zeros(data.shape[1], dtype=np.float)
-        
+
+        # set data_filtered equal to initial data.
+        data_filtered = data
+
         # iteration loop
         for it in np.arange(num_it):
 
             # Fit rba.
-            rba = rba.fit(data, target)
+            rba = rba.fit(data_filtered, target)
 
             # Rank features.
             rank_nxt = rba.rank
 
             ### Remove num_it/a features with lowest weights. ###
             sel = rank_nxt <= rank_nxt.shape[0] - num_to_remove
-            ind_sel = np.where(sel)                 # Get indices of kept features.
-            ind_rm = np.where(np.logical_not(sel))  # Get indices of removed features.
-            ind_rm_original = sel_final[ind_rm]     # Get indices of removed features in original data matrix.
+            ind_sel = np.where(sel)[0]                 # Get indices of kept features.
+            ind_rm = np.where(np.logical_not(sel))[0]  # Get indices of removed features.
+            ind_rm_original = sel_final[ind_rm]        # Get indices of removed features in original data matrix.
             weights[ind_rm_original] = rba.weights[ind_rm]  # Add weights of discarded features to weights vector.
             sel_final = sel_final[ind_sel]          # Filter set of final selection indices.
-            data_filtered = data[:, sel]            # Filter data matrix.
+            data_filtered = data_filtered[:, sel]            # Filter data matrix.
             #####################################################
 
         # Get final ranking and weights.
-        weights_final = rba.weights
+        weights_final = np.delete(rba.weights, ind_rm)
         weights[sel_final] = weights_final
         return rankdata(-weights, method='ordinal'), weights
 

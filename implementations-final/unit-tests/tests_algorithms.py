@@ -59,13 +59,13 @@ class TestRelief(unittest.TestCase):
     # Test relief algorithm
     def test_relief(self):
 
-        # Training examples
+        # training examples
         data = np.array([[2.09525, 0.26961, 3.99627],
                          [9.86248, 6.22487, 8.77424],
                          [7.03015, 9.24269, 3.02136],
                          [4.77481, 8.01036, 7.57880]])
 
-        # Class values
+        # class values
         target = np.array([1, 2, 2, 1])
 
         relief = Relief(n_features_to_select=2, m=data.shape[0])

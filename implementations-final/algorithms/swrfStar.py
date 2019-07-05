@@ -45,7 +45,10 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             self
         """
 
-        self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
+        else:
+            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func)
         return self
 
 

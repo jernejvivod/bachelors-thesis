@@ -138,7 +138,7 @@ class Relief(BaseEstimator, TransformerMixin):
             msk = np.array(list(map(lambda x: True if x == target[idx] else False, target)))  # Get mask for examples with same class.
 
             # Get index of sampled example in subset of examples with same class.
-            idx_subset = idx - npnp..sum(~msk[:idx+1])
+            idx_subset = idx - np.sum(~msk[:idx+1])
 
             # Find nearest hit and nearest miss.
             if 'learned_metric_func' in kwargs:  # If operating in learned metric space.

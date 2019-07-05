@@ -1,5 +1,4 @@
 Problematic:
-	STIR
 	evaporative-cooling-relief
 	adaptive-relief
 	reliefmms
