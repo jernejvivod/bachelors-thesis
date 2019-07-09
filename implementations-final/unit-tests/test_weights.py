@@ -24,6 +24,8 @@ from algorithms.vlsrelief import VLSRelief
 from algorithms.boostedSURF import BoostedSURF
 from algorithms.swrfStar import SWRFStar
 from algorithms.reliefmms import ReliefMMS
+from algorithms.ecrelieff import ECRelieff
+
 
 ## IRELIEF ###
 
@@ -170,7 +172,8 @@ print("weights: {0}".format(vlsrelief.weights))
 
 
 
-# VLSRELIEF ####
+
+# SWRFSTAR #####
 
 print("SwrfStar")
 swrfstar = SWRFStar(n_features_to_select=2)
@@ -184,12 +187,19 @@ print("weights: {0}".format(swrfstar.weights))
 
 # RELIEFMMS ####
 
+print("ReliefMMS")
 reliefmms = ReliefMMS(n_features_to_select=2)
-reliefmms = reliefmms.fit(data1, target1)
+reliefmms = reliefmms.fit(data3, target3)
 print("weights: {0}".format(reliefmms.weights))
-
-# [0.23098039 0.12036892 -0.04884714]
 
 ################
 
 
+# EVAPORATIVE COOLING RELIEFF ####
+
+print("Evaporative Cooling ReliefF")
+ecrelieff = ECRelieff(n_features_to_select=2)
+ecrelieff = ecrelieff.fit(data3, target3)
+print("rank: {0}".format(ECRelieff.rank))
+
+##################################

@@ -1301,5 +1301,317 @@ class TestReliefSeq(unittest.TestCase):
 #######################################################
 
 
+
+## RELIEFMMS ALGORITHM IMPLEMENTATION UNIT TESTS ######
+
+from algorithms.reliefmms import ReliefMMS
+
+class TestReliefMMS(unittest.TestCase):
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        reliefmms = ReliefMMS()
+        self.assertEqual(reliefmms.n_features_to_select, 10)
+        self.assertEqual(reliefmms.m, -1)
+        self.assertEqual(reliefmms.k, 5)
+        self.assertNotEqual(reliefmms.dist_func, None)
+        self.assertEqual(reliefmms.learned_metric_func, None)
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+        reliefmms = ReliefMMS(n_features_to_select=15, m=80, k=3, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+
+        self.assertEqual(reliefmms.n_features_to_select, 15)
+        self.assertEqual(reliefmms.m, 80)
+        self.assertEqual(reliefmms.k, 3)
+        self.assertNotEqual(reliefmms.dist_func, None)
+        self.assertNotEqual(reliefmms.learned_metric_func, None)
+    
+    # Test update of weights.
+    def test_weights_update(self):
+        
+        # examples and target values
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [9.86248, 6.22487, 8.77424],
+                         [3.22177, 0.16564, 5.79036],
+                         [1.81406, 2.74643, 2.13259],
+                         [2.79316, 1.71541, 2.97578],
+                         [4.77481, 8.01036, 7.57880]])
+        target = np.array([1, 1, 2, 1, 2, 2])
+
+        # Feature weights
+        weights = np.zeros(data.shape[1])
+
+        # Initialize algorithm.
+        k = 2
+        reliefmms = ReliefMMS(n_features_to_select=2, k=k)
+        
+        # sampled example
+        e = data[4, :]
+        
+        # expanded sampled examples
+        e_expanded_same = np.array([[0.0    , 1.71541, 2.97578],
+                                    [2.79316, 0.0    , 2.97578],
+                                    [2.79316, 1.71541, 0.0    ],
+                                    [0.0    , 1.71541, 2.97578],
+                                    [2.79316, 0.0    , 2.97578],
+                                    [2.79316, 1.71541, 0.0    ]])
+
+        e_expanded_other = np.array([[0.0    , 1.71541, 2.97578],
+                                     [2.79316, 0.0    , 2.97578],
+                                     [2.79316, 1.71541, 0.0    ],
+                                     [0.0    , 1.71541, 2.97578],
+                                     [2.79316, 0.0    , 2.97578],
+                                     [2.79316, 1.71541, 0.0     ]])
+
+
+        
+        # near hits and misses
+        closest_same = np.array([[3.22177, 0.16564, 5.79036],
+                                 [4.77481, 8.01036, 7.5788 ]])
+
+        closest_other = np.array([[1.81406, 2.74643, 2.13259],
+                                  [2.09525, 0.26961, 3.99627]])
+
+
+        
+        # expanded nearest hits and misses
+        closest_same_expanded = np.array([[0.0    , 0.16564, 5.79036],
+                                          [3.22177, 0.0    , 5.79036],
+                                          [3.22177, 0.16564, 0.0    ],
+                                          [0.0    , 8.01036, 7.5788 ],
+                                          [4.77481, 0.0    , 7.5788 ],
+                                          [4.77481, 8.01036, 0.0     ]])
+        
+
+        closest_other_expanded = np.array([[0.0    , 2.74643, 2.13259],
+                                           [1.81406, 0.0    , 2.13259],
+                                           [1.81406, 2.74643, 0.0    ],
+                                           [0.0    , 0.26961, 3.99627],
+                                           [2.09525, 0.0    , 3.99627],
+                                           [2.09525, 0.26961, 0.0     ]])
+
+
+        # dm values and diff values
+        dm_vals_same = np.array([[0.31066652, 0.23851558, 0.12540487],
+                                 [0.74774894, 0.46963486, 0.52433011]])
+
+
+        dm_vals_other = np.array([[0.12919171, 0.12430305, 0.12653987],
+                                  [0.16897619, 0.12018199, 0.13550811]])
+
+
+        diff_vals_same = np.array([[0.05325393, 0.19755581, 0.42377722],
+                                   [0.24621603, 0.80244419, 0.69305368]])
+
+        diff_vals_other = np.array([[0.12165121, 0.13142853, 0.1269549 ],
+                                    [0.08671391, 0.18430231, 0.15365007]])
+
+
+        # masks for considered features
+        features_msk_same = np.array([[False, False,  True],
+                                      [False,  True,  True]])
+
+        features_msk_other = np.array([[False,  True,  True],
+                                      [False,  True,  True]])
+
+
+        # weights multiplier vector
+        weights_mult = np.array([1.0, 1.0])
+        
+        # m parameter, maximal and minimal feature values.
+        m = data.shape[0]
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
+        
+        # Compute results using method
+        weights = reliefmms._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k,
+                max_f_vals[np.newaxis], min_f_vals[np.newaxis], dm_vals_same, dm_vals_other, features_msk_same, features_msk_other)
+        
+        # Assert equality with results computed by "hand"
+        correct_results = [0.0, -0.02179696, -0.03737824]
+        assert_array_almost_equal(weights, correct_results, decimal=5)
+
+
+
+
+
+#######################################################
+
+
+
+## ECRELIEF ALGORITHM IMPLEMENTATION UNIT TESTS #######
+
+from algorithms.ecrelieff import ECRelieff
+
+class TestECRelieff(unittest.TestCase):
+
+
+    # Test initialization with default parameters.
+    def test_init_default(self):
+        ecrelieff = ECRelieff()
+        self.assertEqual(ecrelieff.n_features_to_select, 10)
+        self.assertEqual(ecrelieff.m, -1)
+        self.assertEqual(ecrelieff.k, 5)
+        self.assertNotEqual(ecrelieff.dist_func, None)
+        self.assertEqual(ecrelieff.learned_metric_func, None)
+
+
+    # Test initialization with explicit parameters.
+    def test_init_custom(self):
+
+        # Initialize ecrelieff algorithm.
+        ecrelieff = ECRelieff(n_features_to_select=15, m=80, k=3, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
+                learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
+        
+        self.assertEqual(ecrelieff.n_features_to_select, 15)
+        self.assertEqual(ecrelieff.m, 80)
+        self.assertEqual(ecrelieff.k, 3)
+        self.assertNotEqual(ecrelieff.dist_func, None)
+        self.assertNotEqual(ecrelieff.learned_metric_func, None)
+   
+
+    # Test method for computing information entropy of distribution.
+    def test_entropy(self):
+
+        # Initialize algorithm.
+        ecrelieff = ECRelieff()
+
+        # Define distribution.
+        distribution = np.array([1, 2, 3, 2, 3, 3, 2, 1, 1, 1, 2, 1, 1, 2])
+
+        # Compute entropy of distribution.
+        entropy = ecrelieff._entropy(distribution)
+
+        # Assert equality with result computed by hand.
+        correct_res = -1.060944240790747
+        self.assertAlmostEqual(entropy, correct_res, places=5)
+
+
+    def test_scaled_mutual_information(self):
+
+        # Initialize algorithm.
+        ecrelieff = ECRelieff()
+
+        # Define distributions.
+        distribution1 = np.array([1, 2, 1, 2, 2, 1])
+        distribution2 = np.array([1, 1, 2, 1, 1, 1])
+        
+        # Compute joint entropy of distribution.
+        joint_entropy = ecrelieff._joint_entropy_pair(distribution1, distribution2)
+        
+        # Assert equality with result computed by hand.
+        correct_res = -1.0114042647073518
+        self.assertAlmostEqual(joint_entropy, correct_res, places=5)
+
+
+    def test_mu_vals(self):
+
+        # Initialize algorithm.
+        ecrelieff = ECRelieff()
+
+        # data matrix
+        data = np.array([[2.09525, 0.26961, 3.99627],
+                         [3.41438, 4.03548, 7.88157],
+                         [2.01185, 0.84564, 6.16909],
+                         [2.79316, 1.71541, 2.97578],
+                         [3.22177, 0.16564, 5.79036],
+                         [4.77481, 8.01036, 7.57880]])
+
+        # class values
+        target = np.array([1, 2, 2, 1, 2, 1])
+        
+        # Compute mu values of each feature using method for computing scaled mutual information.
+        mu_val_col1 = ecrelieff._scaled_mutual_information(data[:, 0], target)
+        mu_val_col2 = ecrelieff._scaled_mutual_information(data[:, 1], target)
+        mu_val_col3 = ecrelieff._scaled_mutual_information(data[:, 2], target)
+        
+        # Compute mu values using method.
+        mu_vals = ecrelieff._mu_vals(data, target)
+        
+        # Assert equivalence with reference values.
+        assert_array_almost_equal(mu_vals, np.hstack((mu_val_col1, mu_val_col2, mu_val_col3)), decimal=5)
+
+        
+
+
+    def test_ec_ranking(self):
+
+        # Initialize algorithm.
+        ecrelieff = ECRelieff()
+        relieff = Relieff(n_features_to_select=2, k=2)
+
+        # training data
+        data = np.array([[0.53879488, 0.16099916, 0.80609509],
+                         [0.00665539, 0.65429391, 0.3233824 ],
+                         [0.22639025, 0.94208208, 0.46148625],
+                         [0.55532045, 0.31271657, 0.35163855],
+                         [0.34308661, 0.05159247, 0.90597746],
+                         [0.67272446, 0.59408622, 0.3439894 ],
+                         [0.52884265, 0.95793129, 0.24426362],
+                         [0.1054776 , 0.03749807, 0.48596704],
+                         [0.98325318, 0.4379886 , 0.62115345],
+                         [0.77658876, 0.43066704, 0.21481603],
+                         [0.99408101, 0.54933223, 0.65880535],
+                         [0.23889221, 0.62957216, 0.42807919],
+                         [0.61504689, 0.58245601, 0.35414603],
+                         [0.0350451 , 0.42460599, 0.97788676],
+                         [0.4467134 , 0.48367146, 0.08153195],
+                         [0.48223901, 0.82379857, 0.70542373],
+                         [0.92240805, 0.75470112, 0.22935557],
+                         [0.29325974, 0.29930511, 0.37479782],
+                         [0.96143566, 0.66337875, 0.21610012],
+                         [0.72639423, 0.02950298, 0.94274265],
+                         [0.31864918, 0.85770961, 0.17357909],
+                         [0.58509117, 0.19696788, 0.32937242],
+                         [0.33772196, 0.72231957, 0.18159963],
+                         [0.44964141, 0.23846249, 0.27084955],
+                         [0.66920509, 0.62843899, 0.99784001],
+                         [0.37303704, 0.95834857, 0.35396477],
+                         [0.2148355 , 0.51463608, 0.07259841],
+                         [0.28524935, 0.69747083, 0.32154552],
+                         [0.70000808, 0.71336322, 0.71115693],
+                         [0.19438843, 0.35839748, 0.09421971],
+                         [0.96177053, 0.4287725 , 0.26201691],
+                         [0.56054441, 0.62187944, 0.38435536],
+                         [0.54385178, 0.22956007, 0.75018246],
+                         [0.78749137, 0.86069706, 0.55328341],
+                         [0.18188672, 0.05221167, 0.32740078],
+                         [0.2142939 , 0.17950093, 0.94978777],
+                         [0.48808017, 0.59539175, 0.51316259],
+                         [0.27419861, 0.41357566, 0.27672366],
+                         [0.11278808, 0.19146445, 0.92355841],
+                         [0.59253456, 0.49175781, 0.29669113],
+                         [0.1093615 , 0.30248041, 0.02401551],
+                         [0.63806357, 0.15336297, 0.48337229],
+                         [0.98397185, 0.56481044, 0.20104418],
+                         [0.6780726 , 0.50429738, 0.64984774],
+                         [0.92510433, 0.45871314, 0.36298019],
+                         [0.99957637, 0.23747606, 0.10718285],
+                         [0.57332042, 0.05129253, 0.50091633],
+                         [0.84714921, 0.41687355, 0.90047326],
+                         [0.42096323, 0.63866903, 0.94864066],
+                         [0.68276173, 0.24411882, 0.41476011]])
+
+        # class values
+        target = (data[:, 0] > data[:, 1]).astype(np.int)
+
+        # Compute ReliefF weights and mu values.
+        weights = relieff.fit(data, target).weights
+        mu_vals = ecrelieff._mu_vals(data, target)
+
+        # Compute results using method.
+        rank = ecrelieff._perform_ec_ranking(data, target, weights, mu_vals)
+
+        # Assert equality with result computed by hand.
+        correct_res = np.array([3, 2, 1])
+        assert_array_equal(rank, correct_res)
+
+
+#######################################################
+
+
 if __name__ == '__main__':
     unittest.main()

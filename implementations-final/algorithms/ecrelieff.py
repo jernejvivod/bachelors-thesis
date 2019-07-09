@@ -12,32 +12,32 @@ from julia import Julia
 jl = Julia(compiled_modules=False)
 
 
-class ReliefMMS(BaseEstimator, TransformerMixin):
+class ECRelieff(BaseEstimator, TransformerMixin):
 
-    """sklearn compatible implementation of the ReliefMMS algorithm
-
-    Salim Chikhi, Sadek Benhammada.
-    ReliefMSS: a variation on a feature ranking ReliefF algorithm.
-
+    """sklearn compatible implementation of the Evaporative Cooling Relief algorithm
+   
+    B.A. McKinney, D.M. Reif, B.C. White, J.E. Crowe, Jr., J.H. Moore.
+    Evaporative cooling feature selection for genotypic data involving interactions.
+    
     Author: Jernej Vivod
     """
    
     def __init__(self, n_features_to_select=10, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
-        self.m = m                                        # examples sample size
-        self.k = k                                        # number of nearest neighbours from each class to find
+        self.m = m                                        # example sample size
+        self.k = k                                        # the k parameter
         self.dist_func = dist_func                        # distance function
-        self.learned_metric_func = learned_metric_func    # learned metric function
+        self.learned_metric_func = learned_metric_func    # learned distance function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_reliefmms2.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff2.jl")
+        self._perform_ec_ranking = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/ec_ranking.jl")
 
 
     def fit(self, data, target):
-
         """
-        Rank features using ReliefMMS feature selection algorithm
+        Rank features using ReliefF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples
@@ -47,17 +47,14 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
             self
         """
 
-        # Fit training data.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._reliefmms(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank = self._ecrelieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._reliefmms(data, target, self.m, self.k, self.dist_func)
-
+            self.rank = self._ecrelieff(data, target, self.m, self.k, self.dist_func)
         return self
 
 
     def transform(self, data):
-
         """
         Perform feature selection using computed feature ranks
 
@@ -67,14 +64,12 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
-
         # select n_features_to_select best features and return selected features.
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
 
 
     def fit_transform(self, data, target):
-
         """
         Compute ranks of features and perform feature selection
         Args:
@@ -84,17 +79,75 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection 
         """
+        self.fit(data, target)  # Fit data
+        return self.transform(data)  # Perform feature selection
 
-        self.fit(data, target)  # Fit data.
-        return self.transform(data)  # Perform feature selection.
 
 
-    def _reliefmms(self, data, target, m, k, dist_func, **kwargs):
+    def _entropy(self, distribution):
+        """
+        Compute entropy of distribution
+        Args:
+            distribution : Array[np.float] or Array[np.int]
+        
+        Returns:
+            np.float -- entropy of the distribution
+        """
 
-        """Compute feature scores using ReliefMMS algorithm
+        _, counts_classes = np.unique(distribution, return_counts=True)
+        p_classes = counts_classes/np.float(distribution.size) 
+        return np.sum(p_classes*np.log(p_classes))
+
+
+
+    def _joint_entropy_pair(self, distribution1, distribution2):
+
+        """
+        Compute joint entropy of two distributions.
 
         Args:
-            data : Array[np.float64] -- Matrix containing examples' data as rows 
+            distribution2 : Array[np.float] or Array[np.int] -- first distribution
+            distribution2 : Array[np.float] or Array[np.int] -- second distribution
+        
+        Returns:
+            np.float -- entropy of the distribution
+        """
+
+        _, counts_pairs = np.unique(np.vstack((distribution1, distribution2)), axis=1, return_counts=True)
+        p_pairs = counts_pairs/np.float(distribution1.size)
+        return np.sum(p_pairs*np.log(p_pairs))
+
+
+    def _scaled_mutual_information(self, distribution1, distribution2):
+
+        """
+        Compute scaled mutual information between two distribution
+
+        Args:
+            distribution1 : Array[np.float] or Array[np.int] -- first distribution
+            distribution2 : Array[np.float] or Array[np.int] -- second distribution
+
+        Returns:
+            np.float -- scaled mutual information of the distributions
+        """
+
+        return (self._entropy(distribution1) +\
+                self._entropy(distribution2) - self._joint_entropy_pair(distribution1, distribution2))/self._entropy(distribution1)
+
+
+    def _mu_vals(self, data, target):
+        mu_vals = np.empty(data.shape[1], dtype=np.float)
+        for idx, col in enumerate(data.T):
+            mu_vals[idx] = self._scaled_mutual_information(col, target)
+        return mu_vals
+
+
+    def _ecrelieff(self, data, target, m, k, dist_func, **kwargs):
+
+        """Compute feature scores using Evaporative Cooling ReliefF algorithm
+
+        Args:
+            data : Array[np.float64] -- matrix containing examples' data as rows 
             target : Array[np.int] -- matrix containing the example's target variable value
             m : int -- Sample size to use when evaluating the feature scores
             k : int -- Number of closest examples from each class to use
@@ -106,11 +159,10 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
 
         Returns:
             Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
-
         """
 
-        # Initialize all weights to 0.
-        weights = np.zeros(data.shape[1], dtype=float)
+        # Initialize feature weights.
+        weights = np.zeros(data.shape[1], dtype=np.float)
 
         # Get indices of examples in sample.
         idx_sampled = np.random.choice(np.arange(data.shape[0]), data.shape[0] if m == -1 else m, replace=False)
@@ -129,6 +181,8 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
         p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
         p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
 
+        # Compute mu values.
+        mu_vals = self._mu_vals(data, target)
 
         # Go over sampled examples' indices.
         for idx in idx_sampled:
@@ -143,7 +197,7 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
             if 'learned_metric_func' in kwargs:
 
                 # Partially apply distance function.
-                dist = partial(kwargs['learned_metric_func'], dist_func, int(idx))
+                dist = partial(kwargs['learned_metric_func'], dist_func, np.int(idx))
 
                 # Compute distances to examples from same class in learned metric space.
                 distances_same = dist(np.where(target == target[idx])[0])
@@ -162,11 +216,11 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
                 distances_same[idx_class] = np.inf
 
                 # Find closest examples from same class.
-                idxs_closest_same = np.argpartition(distances_same, k)[:k] #
-                closest_same = (data[target == target[idx], :])[idxs_closest_same, :] #
+                idxs_closest_same = np.argpartition(distances_same, k)[:k]
+                closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
 
             # Allocate matrix template for getting nearest examples from other classes.
-            closest_other = np.zeros((k * (len(classes) - 1), data.shape[1])) #
+            closest_other = np.empty((k * (len(classes) - 1), data.shape[1]), dtype=np.float)
 
             # Initialize pointer for adding examples to template matrix.
             top_ptr = 0
@@ -185,54 +239,7 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
                     # Add found closest examples to matrix.
                     closest_other[top_ptr:top_ptr+k, :] = (data[target == cl, :])[idx_closest_cl, :]
                     top_ptr = top_ptr + k
-          
 
-
-            ### MARKING CONSIDERED FEATURES ###
-            
-            # get diagonal mask for diagonals of expanded neighbour examples.
-            diag_msk = np.eye(data.shape[1], dtype=np.bool)
-            diag_msk_expanded_same = np.tile(diag_msk, (k, 1))  # Create mask for near hits.
-            diag_msk_expanded_other = np.tile(diag_msk, (k*(classes.size-1), 1))  # Create mask for near misses.
-            
-            # Expand currently samples example.
-            e_expanded = np.tile(e, (e.size, 1))
-            np.fill_diagonal(e_expanded, 0.0)  # Set diagonal to zeros.
-
-            # Expand current sampled example for computations with near hits.
-            e_expanded_same = np.tile(e_expanded, (k, 1))
-            # Expand current sampled example for computations with near misses.
-            e_expanded_other = np.tile(e_expanded, (k*(classes.size-1), 1))
-
-
-            
-            # Expand near hits and set diagonals to zero using mask.
-            closest_same_expanded = np.repeat(closest_same, closest_same.shape[1], axis=0)
-            closest_same_expanded[diag_msk_expanded_same] = 0.0
-
-            # Expand near misses and set diagonals to zero using mask.
-            closest_other_expanded = np.repeat(closest_other, closest_other.shape[1], axis=0)
-            closest_other_expanded[diag_msk_expanded_other] = 0.0
-
-
-            # Compute DM values and DIFF values for each feature of each nearest hit and nearest miss.
-            # nearest hits:
-            dm_vals_same = np.reshape(np.sum(np.abs(e_expanded_same - closest_same_expanded)/\
-                    (max_f_vals - min_f_vals), 1)/np.float(data.shape[1]-1), (k, data.shape[1]))
-            diff_vals_same = np.abs(e - closest_same)/(max_f_vals - min_f_vals)
-            
-            # nearest misses:
-            dm_vals_other = np.reshape(np.sum(np.abs(e_expanded_other - closest_other_expanded)/\
-                    (max_f_vals - min_f_vals), 1)/np.float(data.shape[1]-1), (k*(classes.size-1), data.shape[1]))
-            diff_vals_other = np.abs(e - closest_other)/(max_f_vals - min_f_vals)
-
-            
-            # Compute masks for considered features of nearest hits and nearest misses.
-            features_msk_same = diff_vals_same > dm_vals_same
-            features_msk_other = diff_vals_other > dm_vals_other
-            
-            ###################################
-        
 
             # Get probabilities of classes not equal to class of sampled example.
             p_classes_other = p_classes[p_classes[:, 0] != target[idx], 1]
@@ -241,12 +248,17 @@ class ReliefMMS(BaseEstimator, TransformerMixin):
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
 
-            # ------ weights update ------
-            weights = self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k, 
-                    max_f_vals[np.newaxis], min_f_vals[np.newaxis], dm_vals_same, dm_vals_other, features_msk_same, features_msk_other)
-       
 
-        # Create array of feature enumerations based on score.
-        rank = rankdata(-weights, method='ordinal')
-        return rank, weights
+            # ------ weights update ------
+            weights = np.array(self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis],
+                    weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
+
+
+        import pdb
+        pdb.set_trace()
+        # Perform evaporative cooling feature selection.
+        rank = self._perform_ec_ranking(data, target, weights, mu_vals)
+
+        # Return feature ranks.
+        return rank
 
