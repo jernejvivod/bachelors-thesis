@@ -254,8 +254,6 @@ class ECRelieff(BaseEstimator, TransformerMixin):
                     weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
 
 
-        import pdb
-        pdb.set_trace()
         # Perform evaporative cooling feature selection.
         rank = self._perform_ec_ranking(data, target, weights, mu_vals)
 
