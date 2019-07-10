@@ -10,12 +10,11 @@ from sklearn.datasets import load_iris
 # and takes into account the correlations of the data set.
 
 from sklearn.preprocessing import StandardScaler
-from metric_learn import Covariance
 import numpy as np
 from typing import Callable
 from nptyping import Array
 
-def get_dist_func(data : Array[np.float64], target : Array[np.float64]) -> Callable[[Callable[[np.float64, np.float64], np.float64], int, int], np.float64]:
+def get_dist_func(data : Array[np.float64], target : Array[np.float64]) -> Callable[[Callable[[np.float64, np.float64], np.float64], np.int, np.int], np.float64]:
     """
     Get function that returns distances between examples in learned space.
 
@@ -23,7 +22,9 @@ def get_dist_func(data : Array[np.float64], target : Array[np.float64]) -> Calla
         data : Array[np.float64] - training data_trans
         target : int - target variable values (classes of training examples)
     Returns:
-        TODO
+        Callable[[Callable[[np.float64, np.float64], np.float64], np.int, np.int], np.float64] -- higher
+        order function that takes a matric function and returns a function that takes two indices of examples
+        and returns distance between examples in learned metric space.
     """
 
     # Get transformed data.
@@ -31,7 +32,7 @@ def get_dist_func(data : Array[np.float64], target : Array[np.float64]) -> Calla
 
 
     # Computing distance:
-    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : int, i2 : int) -> np.float64:
+    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : np.int, i2 : np.int) -> np.float64:
         """ 
         distance function that takes indices of examples in training set and returns distance
         in learned space using specified distance metric.
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     from sklearn.datasets import load_iris  # Import function that loads the Iris dataset.
     data : Array[np.float64] = load_iris()['data']  # Get examples from Iris dataset.
     target : Array[np.int] = load_iris()['target']  # Get classes of examples from Iris dataset.
-    dist_func : Callable[[Callable[[np.float64, np.float64], np.float64], int, int], np.float64] = \
+    dist_func : Callable[[Callable[[np.float64, np.float64], np.float64], np.int, np.int], np.float64] = \
             get_dist_func(data, target)    # Get distance function. Use euclidean distance as metric in learned space.
     print("distances: {0}".format(dist_func(lambda x1, x2: np.sum(np.abs(x1-x2)**2, 1)**(1/2), 1, [0, 1, 2])));
 

@@ -4,9 +4,8 @@ import numpy as np
 from typing import Callable
 from nptyping import Array
 
-# Idea - reduce the dimensionality of examples and measure distances between examples in this space.
 
-def get_dist_func(data : Array[np.float64], target : Array[np.float64], n : int) -> Callable[[Callable[[np.float64, np.float64], np.float64], int, int], np.float64]:
+def get_dist_func(data : Array[np.float64], target : Array[np.float64], n : np.int) -> Callable[[Callable[[np.float64, np.float64], np.float64], np.int, np.int], np.float64]:
     """
     Get function that returns distances between examples in learned space.
 
@@ -24,7 +23,7 @@ def get_dist_func(data : Array[np.float64], target : Array[np.float64], n : int)
     data_trans : Array[np.float64] = LinearDiscriminantAnalysis(n_components=n).fit_transform(StandardScaler().fit_transform(data), target)
 
     # Computing distance:
-    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : int, i2 : int) -> np.float64:
+    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : np.int, i2 : np.int) -> np.float64:
         """ 
         distance function that takes metric function and indices of examples in training set and returns distance
         in learned space using specified distance metric.

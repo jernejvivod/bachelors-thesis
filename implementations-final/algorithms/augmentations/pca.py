@@ -6,7 +6,7 @@ from nptyping import Array
 
 # Idea - reduce the dimensionality of examples and measure distances between examples in this space.
 
-def get_dist_func(data : Array[np.float64]) -> Callable[[Callable[[np.float64, np.float64], np.float64], int, int], np.float64]:
+def get_dist_func(data : Array[np.float64]) -> Callable[[Callable[[np.float64, np.float64], np.float64], np.int, np.int], np.float64]:
     """
     Get function that returns distances between examples in learned space.
 
@@ -22,7 +22,7 @@ def get_dist_func(data : Array[np.float64]) -> Callable[[Callable[[np.float64, n
     data_trans : Array[np.float64] = PCA(n_components='mle').fit_transform(StandardScaler().fit_transform(data))
 
     # distance_function definition
-    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : int, i2 : int) -> np.float64:
+    def dist_func_res(metric : Callable[[np.float64, np.float64], np.float64], i1 : np.int, i2 : np.int) -> np.float64:
         """ 
         distance function that takes metric function and indices of examples in training set and returns distance
         in learned space using specified distance metric.
