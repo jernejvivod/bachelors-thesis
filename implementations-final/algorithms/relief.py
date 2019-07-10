@@ -117,7 +117,6 @@ class Relief(BaseEstimator, TransformerMixin):
              Array[np.int], Array[np.float64] -- Array of feature enumerations based on the scores, array of feature scores
         """
 
-
         # Initialize all weights to zero.
         weights = np.zeros(data.shape[1], dtype=np.float)
 
