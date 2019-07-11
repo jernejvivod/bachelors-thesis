@@ -170,10 +170,10 @@ class SWRFStar(BaseEstimator, TransformerMixin):
 
 
             # Compute weights for examples from same class.
-            neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + 1e-10)))
+            neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + 1e-10))) - 1
             
             # Compute weights for examples from different class.
-            neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10)))
+            neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10))) - 1
 
 
             # Get probabilities of classes not equal to class of sampled example.

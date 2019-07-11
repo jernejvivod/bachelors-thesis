@@ -3,12 +3,6 @@ from scipy.stats import rankdata
 from functools import partial
 from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
-
-from augmentations import covariance, me_dissim
-import augmentations.LDA_custom as lda
-import augmentations.PCA_custom as pca
-import augmentations.NCA as nca
-
 import os
 
 from julia import Julia

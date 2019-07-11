@@ -27,7 +27,7 @@ TODO: compare algorithms augmented with turf.
 """
 
 
-NUM_FOLDS_CV = 10
+NUM_FOLDS_CV = 2
 NUM_RUNS_CV = 1
 
 NOISY = False
@@ -66,9 +66,12 @@ num_algs = len(algs.keys())
 for idx_alg_1 in np.arange(num_algs-1):
     for idx_alg_2 in np.arange(idx_alg_1+1, num_algs):
 
+
         # Initialize results matrix and results tuple.
         results_mat = np.empty((num_datasets, NUM_FOLDS_CV*NUM_RUNS_CV), dtype=np.float)
         nxt = comparePair(list(algs.keys())[idx_alg_1], list(algs.keys())[idx_alg_2], results_mat)
+
+        print("Comparing {0} and {1}".format(nxt.algorithm1, nxt.algorithm2))
        
         # Initialize pipelines for evaluating algorithms.
         clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs[nxt.algorithm1]), ('clf', clf)])
@@ -80,7 +83,7 @@ for idx_alg_1 in np.arange(num_algs-1):
         # Go over dataset directories.
         for dirname in os.listdir(data_dirs_path):
 
-            print(dirname)
+            print("{0} ({1})".format(dirname, row_idx))
             
             # Load data and target matrices.
             data = sio.loadmat(data_dirs_path + '/' + dirname + '/data.mat')['data']

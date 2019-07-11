@@ -1,0 +1,29 @@
+
+### 1. Algorithms Similar in Function to Basic Relief ###
+    - Relief 	 ** NOTES **
+    - ReliefF    ** NOTES **
+    - ReliefMMS  ** NOTES **
+    - ReliefSeq  ** NOTES **
+    - vlsRelief  ** NOTES **
+    - swrfStar	 ** NOTES **
+
+
+### 2. Algorithms of the SURF Family ###
+    - SURF
+	- SURFStar
+    - BoostedSURF
+    - MultiSURF
+    - MultiSURFStar
+
+
+### 3. Iterative Versions ###
+    - irelief
+    - iterative_relief
+    - turf
+
+### 4. Versions Defined Only for Categorical Features ###
+	- Evaporative Cooling ReliefF
+	- TODO
+
+
+# TODO ReliefF diff for categorical
