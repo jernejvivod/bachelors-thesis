@@ -23,36 +23,36 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 
 """
-TODO: compare algorithms augmented with turf.
+Algorithm evaluations script.
+
+This script produces the scores matrix needed for performing the Bayesian hierarchical correlated t-test.
+
+Author: Jernej Vivod
+
 """
 
-
+# Set number of CV folds and runs.
 NUM_FOLDS_CV = 2
 NUM_RUNS_CV = 1
 
-NOISY = False
+# Set default value for parameter k - number of nearest misses to find (needed for a subset of implemented algorithms).
+K_PARAM = 10
 
 # Define named tuple for specifying names of compared algorithms and the scores matrix of comparisons.
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
-
 # Specifiy RBAs to compare.
 algs = OrderedDict([
     ('Relief', Relief()),
-    ('ReliefF', Relieff(k=3))
+    ('ReliefF', Relieff())
 ])
 
 # Initialize classifier.
 # clf = KNeighborsClassifier(n_neighbors=3)
 clf = SVC(gamma='auto')
 
-
-# Specify path to dataset directories (noisy data or non-noisy data).
-if NOISY:
-    data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'noisy'
-else:
-    data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'non-noisy'
-
+# Set path to datasets folder.
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'non-noisy'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
@@ -66,28 +66,36 @@ num_algs = len(algs.keys())
 for idx_alg_1 in np.arange(num_algs-1):
     for idx_alg_2 in np.arange(idx_alg_1+1, num_algs):
 
-
         # Initialize results matrix and results tuple.
         results_mat = np.empty((num_datasets, NUM_FOLDS_CV*NUM_RUNS_CV), dtype=np.float)
         nxt = comparePair(list(algs.keys())[idx_alg_1], list(algs.keys())[idx_alg_2], results_mat)
-
-        print("Comparing {0} and {1}".format(nxt.algorithm1, nxt.algorithm2))
-       
+      
         # Initialize pipelines for evaluating algorithms.
         clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs[nxt.algorithm1]), ('clf', clf)])
         clf_pipeline2 = Pipeline([('scaling', StandardScaler()), ('rba2', algs[nxt.algorithm2]), ('clf', clf)])
-        
+       
         # Initialize row index counter in scores matrix.
-        row_idx = 0
+        scores_row_idx = 0
 
-        # Go over dataset directories.
+        # Go over dataset directories in direstory of datasets.
         for dirname in os.listdir(data_dirs_path):
 
-            print("{0} ({1})".format(dirname, row_idx))
-            
             # Load data and target matrices.
             data = sio.loadmat(data_dirs_path + '/' + dirname + '/data.mat')['data']
             target = np.ravel(sio.loadmat(data_dirs_path + '/' + dirname + '/target.mat')['target'])
+
+            # Get number of instances from each class and find number of instances from
+            # class with least number of instances.
+            _, instances_by_class = np.unique(target, return_counts=True)
+            min_instances = np.min(instances_by_class)
+
+            # If class has less than k instances, set parameter k to number of this number of instances.
+            if nxt.algorithm1 in {"ReliefF"}:
+                clf_pipeline1.set_params(rba1__k=min(K_PARAM, min_instances))
+
+            if nxt.algorithm2 in {"ReliefF"}:
+                clf_pipeline1.set_params(rba1__k=min(K_PARAM, min_instances))
+    
             
             # Perform 10 runs of 10-fold cross validation.
             for idx_run in np.arange(NUM_RUNS_CV):
@@ -104,12 +112,22 @@ for idx_alg_1 in np.arange(num_algs-1):
                 res_nxt = scores1_nxt - scores2_nxt
 
                 # Create next row in results matrix and add.
-                nxt.scores[row_idx, idx_run*NUM_RUNS_CV:idx_run*NUM_RUNS_CV + NUM_FOLDS_CV] = res_nxt
-            
-            row_idx += 1
+                nxt.scores[scores_row_idx, idx_run*NUM_RUNS_CV:idx_run*NUM_RUNS_CV + NUM_FOLDS_CV] = res_nxt
+           
+            # Increment row index counter.
+            scores_row_idx += 1
 
-        import pdb
-        pdb.set_trace()
-
+        # Save data structure containing results to results dictionary and increment results index counter.
         results[results_count] = nxt
         results_count += 1
+
+
+
+# Perform Bayesian hierarchical correlated t-test.
+
+
+
+# Save simplex visualization.
+
+
+

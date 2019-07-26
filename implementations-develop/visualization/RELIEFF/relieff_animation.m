@@ -139,7 +139,7 @@ function [rank, weights] = relieff_animation(data, m, k, dist_func, plot, axes, 
                 line_ctr = 1;
                 lines_closest_same = cell(1, k);
                 for closest_same_nxt = closest_same(:, 1:end-1)'
-                    lines_closest_same{line_ctr} = plot3(axes, [e(1), closest_same_nxt(1)], [e(2), closest_same_nxt(2)], [e(3), closest_same_nxt(3)], 'g-', 'LineWidth', 4);
+                    lines_closest_same{line_ctr} = plot3(axes, [e(1), closest_same_nxt(1)], [e(2), closest_same_nxt(2)], [e(3), closest_same_nxt(3)], 'g-', 'LineWidth', 2);
                     if timeout > 0.0
                        pause(timeout)
                        if get(resetBtnHandle, 'Flag')
@@ -185,7 +185,7 @@ function [rank, weights] = relieff_animation(data, m, k, dist_func, plot, axes, 
                 line_ctr = 1;
                 lines_closest_other = cell(1, k);
                 for closest_other_nxt = closest_other(:, 1:end-1)'
-                    lines_closest_other{line_ctr} = plot3(axes, [e(1), closest_other_nxt(1)], [e(2), closest_other_nxt(2)], [e(3), closest_other_nxt(3)], 'r-', 'LineWidth', 4);
+                    lines_closest_other{line_ctr} = plot3(axes, [e(1), closest_other_nxt(1)], [e(2), closest_other_nxt(2)], [e(3), closest_other_nxt(3)], 'r-', 'LineWidth', 2);
                     if timeout > 0.0
                        pause(timeout)
                        if get(resetBtnHandle, 'Flag')
