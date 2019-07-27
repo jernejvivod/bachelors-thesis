@@ -6,6 +6,7 @@ from collections import namedtuple, OrderedDict
 
 import os
 import sys
+import pickle as pkl
 
 from algorithms.relief import Relief
 from algorithms.relieff import Relieff
@@ -20,31 +21,35 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
+from sklearn.model_selection import RepeatedStratifiedKFold
 
 """
 Algorithm evaluations script.
 
-This script produces the scores matrix needed for performing the Bayesian hierarchical correlated t-test.
+This script produces the scores matrices needed for performing the Bayesian hierarchical correlated t-test.
+The results are saved in child 'evaluation_results' folder.
 
 Author: Jernej Vivod
 
 """
 
 # Set number of CV folds and runs.
-NUM_FOLDS_CV = 2
-NUM_RUNS_CV = 1
+NUM_FOLDS_CV = 10
+NUM_RUNS_CV = 10
 
 # Set default value for parameter k - number of nearest misses to find (needed for a subset of implemented algorithms).
-K_PARAM = 10
+PARAM_K = 10
 
 # Define named tuple for specifying names of compared algorithms and the scores matrix of comparisons.
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
-# Specifiy RBAs to compare.
-algs = OrderedDict([
+# Specifiy RBAs to compare (first pair comes from algs1, second from algs2).
+GROUP_IDX = 1  # Results index
+algs1 = OrderedDict([
     ('Relief', Relief()),
-    ('ReliefF', Relieff())
+])
+algs2 = OrderedDict([
+    ('ReliefF', Relieff(k=PARAM_K)),
 ])
 
 # Initialize classifier.
@@ -62,57 +67,45 @@ results = dict()
 results_count = 0
 
 # Go over all pairs of algorithms (iterate over indices in ordered dictionary).
-num_algs = len(algs.keys())
-for idx_alg_1 in np.arange(num_algs-1):
-    for idx_alg_2 in np.arange(idx_alg_1+1, num_algs):
+num_algs1 = len(algs1.keys())
+num_algs2 = len(algs2.keys())
+for idx_alg1 in np.arange(num_algs1):
+    for idx_alg2 in np.arange(num_algs2):
 
         # Initialize results matrix and results tuple.
         results_mat = np.empty((num_datasets, NUM_FOLDS_CV*NUM_RUNS_CV), dtype=np.float)
-        nxt = comparePair(list(algs.keys())[idx_alg_1], list(algs.keys())[idx_alg_2], results_mat)
+        nxt = comparePair(list(algs1.keys())[idx_alg1], list(algs2.keys())[idx_alg2], results_mat)
       
         # Initialize pipelines for evaluating algorithms.
-        clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs[nxt.algorithm1]), ('clf', clf)])
-        clf_pipeline2 = Pipeline([('scaling', StandardScaler()), ('rba2', algs[nxt.algorithm2]), ('clf', clf)])
+        clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs1[nxt.algorithm1]), ('clf', clf)])
+        clf_pipeline2 = Pipeline([('scaling', StandardScaler()), ('rba2', algs2[nxt.algorithm2]), ('clf', clf)])
        
         # Initialize row index counter in scores matrix.
         scores_row_idx = 0
 
         # Go over dataset directories in direstory of datasets.
-        for dirname in os.listdir(data_dirs_path):
+        for idx_dataset, dirname in enumerate(os.listdir(data_dirs_path)):
 
             # Load data and target matrices.
             data = sio.loadmat(data_dirs_path + '/' + dirname + '/data.mat')['data']
             target = np.ravel(sio.loadmat(data_dirs_path + '/' + dirname + '/target.mat')['target'])
 
-            # Get number of instances from each class and find number of instances from
-            # class with least number of instances.
-            _, instances_by_class = np.unique(target, return_counts=True)
-            min_instances = np.min(instances_by_class)
+            print("performing {0} runs of {1}-fold cross validation on dataset '{2}' " \
+                    "(dataset {3}/{4})".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))
 
-            # If class has less than k instances, set parameter k to number of this number of instances.
-            if nxt.algorithm1 in {"ReliefF"}:
-                clf_pipeline1.set_params(rba1__k=min(K_PARAM, min_instances))
+            # Get scores for first algorithm (create pipeline).
+            scores1_nxt = cross_val_score(clf_pipeline1, data, target, cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=10, random_state=1), verbose=1)
 
-            if nxt.algorithm2 in {"ReliefF"}:
-                clf_pipeline1.set_params(rba1__k=min(K_PARAM, min_instances))
-    
-            
-            # Perform 10 runs of 10-fold cross validation.
-            for idx_run in np.arange(NUM_RUNS_CV):
+            # Get scores for second algorithm (create pipeline).
+            scores2_nxt = cross_val_score(clf_pipeline2, data, target, cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=10, random_state=1), verbose=1)
 
-                print("idx_run == {0}".format(idx_run))
+            # Compute differences of scores.
+            res_nxt = scores1_nxt - scores2_nxt
 
-                # Get scores for first algorithm (create pipeline).
-                scores1_nxt = cross_val_score(clf_pipeline1, data, target, cv=KFold(NUM_FOLDS_CV, shuffle=True))
+            # Add row of scores to results matrix.
+            nxt.scores[scores_row_idx, :] = res_nxt
 
-                # Get scores for second algorithm (create pipeline).
-                scores2_nxt = cross_val_score(clf_pipeline2, data, target, cv=KFold(NUM_FOLDS_CV, shuffle=True))
-
-                # Compute differences of scores.
-                res_nxt = scores1_nxt - scores2_nxt
-
-                # Create next row in results matrix and add.
-                nxt.scores[scores_row_idx, idx_run*NUM_RUNS_CV:idx_run*NUM_RUNS_CV + NUM_FOLDS_CV] = res_nxt
+            print("Testing on the '{0}' dataset finished".format(dirname))
            
             # Increment row index counter.
             scores_row_idx += 1
@@ -121,13 +114,9 @@ for idx_alg_1 in np.arange(num_algs-1):
         results[results_count] = nxt
         results_count += 1
 
-
-
-# Perform Bayesian hierarchical correlated t-test.
-
-
-
-# Save simplex visualization.
-
-
+# Save results to file.
+script_path = os.path.abspath(__file__)
+script_path = script_path[:script_path.rfind('/')]
+with open(script_path + "/evaluation_results/results_group_" + str(GROUP_IDX) + ".p", "wb") as handle:
+    pkl.dump(results, handle)
 

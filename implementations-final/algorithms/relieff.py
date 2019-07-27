@@ -5,6 +5,7 @@ from functools import partial
 
 import os
 import sys
+import warnings
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -45,11 +46,23 @@ class Relieff(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        
+        # Get number of instances with class that has minimum number of instances.
+        _, instances_by_class = np.unique(target, return_counts=True)
+        min_instances = np.min(instances_by_class)
+       
+        # If class with minimal number of examples has less than k examples, issue warning
+        # that parameter k was reduced.
+        if min_instances < self.k:
+            warnings.warn("Parameter k was reduced to {0} because one of the classes " \
+                    "does not have {1} instances associated with it.".format(min_instances, self.k), Warning)
 
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._relieff(data, target, self.m, min(self.k, min_instances), 
+                    self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._relieff(data, target, self.m, self.k, self.dist_func)
+            self.rank, self.weights = self._relieff(data, target, self.m, min(self.k, min_instances), 
+                    self.dist_func)
         return self
 
 
@@ -164,7 +177,7 @@ class Relieff(BaseEstimator, TransformerMixin):
                 distances_same[idx_class] = np.inf
 
                 # Find k closest examples from same class.
-                idxs_closest_same = np.argpartition(distances_same, k)[:k]
+                idxs_closest_same = np.argpartition(distances_same, k-1)[:k]
                 closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
             else:
                 # Find k nearest examples from same class.
@@ -174,7 +187,7 @@ class Relieff(BaseEstimator, TransformerMixin):
                 distances_same[idx_class] = np.inf
 
                 # Find closest examples from same class.
-                idxs_closest_same = np.argpartition(distances_same, k)[:k]
+                idxs_closest_same = np.argpartition(distances_same, k-1)[:k]
                 closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
 
             # Allocate matrix template for getting nearest examples from other classes.
@@ -189,10 +202,10 @@ class Relieff(BaseEstimator, TransformerMixin):
                         # get closest k examples with class cl if using learned distance metric.
                         distances_cl = dist(np.where(target == cl)[0])
                     else:
-                        # Get closest k examples with class cl
+                        # Get closest k examples with class cl.
                         distances_cl = dist_func(e, data[target == cl, :])
-                    # Get indices of closest exmples from class cl
-                    idx_closest_cl = np.argpartition(distances_cl, k)[:k]
+                    # Get indices of closest exmples from class cl.
+                    idx_closest_cl = np.argpartition(distances_cl, k-1)[:k]
 
                     # Add found closest examples to matrix.
                     closest_other[top_ptr:top_ptr+k, :] = (data[target == cl, :])[idx_closest_cl, :]
