@@ -121,6 +121,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
         p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
         p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
 
+
         # Go over sampled examples' indices.
         for idx in idx_sampled:
 
@@ -174,7 +175,6 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             
             # Compute weights for examples from different class.
             neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10))) - 1
-
 
             # Get probabilities of classes not equal to class of sampled example.
             p_classes_other = p_classes[p_classes[:, 0] != target[idx], 1]

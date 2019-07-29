@@ -14,7 +14,6 @@ function update_weights(data, e, closest_same, closest_other, weights, weights_m
 	# Weights update
 	weights = weights .- penalty./(m*k) .+ reward./(m*k)
 
-
 	# Return updated weights.
 	return vec(weights)
 end

@@ -4,9 +4,9 @@ from functools import partial
 from sklearn.base import BaseEstimator, TransformerMixin
 import numba as nb
 import os
-
 from julia import Julia
 jl = Julia(compiled_modules=False)
+
 
 class Relief(BaseEstimator, TransformerMixin):
 
@@ -87,8 +87,8 @@ class Relief(BaseEstimator, TransformerMixin):
     # def _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals):
     #     for t in np.arange(data.shape[1]):
     #         # Update weights
-    #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m + \
-    #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))/m
+    #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))/m + \
+    #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))/m
 
     #     return weights  # Return updated weights
 
@@ -153,7 +153,6 @@ class Relief(BaseEstimator, TransformerMixin):
             weights = self._update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals)
 
 
-        # Create array of feature enumerations based on score.
-        rank = rankdata(-weights, method='ordinal')
-        return rank, weights  # Return vector of feature quality estimates.
+        # Return feature rankings and weights.
+        return rankdata(-weights, method='ordinal'), weights
 

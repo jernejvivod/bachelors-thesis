@@ -2,9 +2,7 @@ import numpy as np
 import numpy as np
 from functools import partial
 from scipy.stats import rankdata
-
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from algorithms.relieff import Relieff
 
 
@@ -28,7 +26,6 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         self.k = k                            # the k parameter for ReliefF algorithm (number of closest examples from each class to consider)
         self.dist_func = dist_func            # distance function to use
         self.learned_metric_func = learned_metric_func  # learned metric function
-
 
 
     def fit(self, data, target):
@@ -137,8 +134,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
             # Update weights using local weights.
             weights[ind_sel] = np.maximum(weights[ind_sel], relieff.weights)
 
-
-        # Create array of feature enumerations based on score.
-        rank = rankdata(-weights, method='ordinal')
-        return rank, weights
+        
+        # Return feature rankings and weights.
+        return rankdata(-weights, method='ordinal'), weights
  

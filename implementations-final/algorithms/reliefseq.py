@@ -1,9 +1,9 @@
 import numpy as np
+import warnings
 from algorithms.relieff import Relieff
-
 from scipy.stats import rankdata
-
 from sklearn.base import BaseEstimator, TransformerMixin
+
 
 class ReliefSeq(BaseEstimator, TransformerMixin):
 
@@ -17,7 +17,7 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, n_features_to_select=10, m=-1, k_max=10, 
+    def __init__(self, n_features_to_select=10, m=-1, k_max=20,
             dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select.
         self.m = m                                        # sample size of examples for the ReliefF algorithm
@@ -39,8 +39,19 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
             self
         """
 
+        # Get number of instances with class that has minimum number of instances.
+        _, instances_by_class = np.unique(target, return_counts=True)
+        min_instances = np.min(instances_by_class)
+
+        # If class with minimal number of examples has less than k examples, issue warning
+        # that parameter k was reduced.
+        if min_instances < self.k_max:
+            warnings.warn("Parameter k_max was reduced to {0} because one of the classes " \
+                    "does not have {1} instances associated with it.".format(min_instances, self.k_max), Warning)
+
+
         # Fit training data.
-        self.rank, self.weights = self._reliefseq(data, target, self.m, self.k_max, 
+        self.rank, self.weights = self._reliefseq(data, target, self.m, min(self.k_max, min_instances), 
                 self.dist_func, learned_metric_func=self.learned_metric_func)
 
         return self
@@ -118,8 +129,7 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
         # For each feature choose maximum weight over weights by different values of k.
         weights = np.max(weights_mat, 1)
 
-        # Create array of feature enumerations based on score.
-        rank = rankdata(-weights, method='ordinal')
-        return rank, weights
+        # Return feature rankings and weights.
+        return rankdata(-weights, method='ordinal'), weights
 
 

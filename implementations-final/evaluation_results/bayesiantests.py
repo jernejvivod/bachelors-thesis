@@ -222,6 +222,7 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha =1, lowerBeta = 
     #std_upper_bound is a constant which multiplies the sample standard deviation, to set the upper limit of the prior on the
     #standard deviation.  Posterior inferences are insensitive to this value as this is large enough, such as 100 or 1000.
 
+
     import scipy.stats as stats
     import pystan
     #data rescaling, to have homogenous scale among all dsets
@@ -232,7 +233,7 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha =1, lowerBeta = 
     #to avoid numerical problems with zero variance
     for i in range(0,len(x)):
         if np.std(x[i,:])==0:
-            x[i,:]=x[i,:]+np.random.normal(0,np.min(1/1000000000,np.abs(np.mean(x[i,:])/100000000)))
+            x[i,:]=x[i,:]+np.random.normal(0,min(1/1000000000,np.abs(np.mean(x[i,:])/100000000)))
   
     
     #This is the Hierarchical model written in Stan
@@ -456,13 +457,11 @@ def plot_simplex(points, names=('C1', 'C2')):
     
     nl, ne, nr = np.max(points, axis=0)
 
-    # for i, n in enumerate((nl, ne, nr)):
-    #     if n < 0.001:
-    #         print("p{} is too small, switching to 2d plot".format(names[::-1] + ["rope"]))
-    #         import pdb
-    #         pdb.set_trace()
-    #         coords = sorted(set(range(3)) - {i})
-    #         return plot2d(points[:, coords], labels[coords])
+    for i, n in enumerate((nl, ne, nr)):
+        if n < 0.001:
+            print("p{} is too small, switching to 2d plot".format(names[::-1] + ["rope"]))
+            coords = sorted(set(range(3)) - {i})
+            return plot2d(points[:, coords], labels[coords])
 
     # triangle
     fig.gca().add_line(
@@ -481,6 +480,7 @@ def plot_simplex(points, names=('C1', 'C2')):
 
     # project and draw points
     tripts = _project(points[:, [0, 2, 1]])
+
     plt.hexbin(tripts[:, 0], tripts[:, 1], mincnt=1, cmap=plt.cm.Blues_r)            
     # Leave some padding around the triangle for vertex labels
     fig.gca().set_xlim(-0.2, 1.2)

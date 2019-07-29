@@ -2,13 +2,10 @@ import numpy as np
 import numba as nb
 from scipy.stats import rankdata
 from functools import partial
-
 import os
 import sys
 import warnings
-
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from julia import Julia
 jl = Julia(compiled_modules=False)
 
@@ -102,10 +99,10 @@ class Relieff(BaseEstimator, TransformerMixin):
     #     for t in np.arange(data.shape[1]):
 
     #         # Penalty term
-    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
+    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))
 
     #         # Reward term
-    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
+    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + np.finfo(np.float64).eps))))
 
     #         # Weights update
     #         weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
@@ -218,14 +215,13 @@ class Relieff(BaseEstimator, TransformerMixin):
             # Compute diff sum weights for closest examples from different class.
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
-
+           
 
             # ------ weights update ------
             weights = np.array(self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis],
                     weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
-       
 
-        # Create array of feature enumerations based on score.
-        rank = rankdata(-weights, method='ordinal')
-        return rank, weights
+
+        # Return feature rankings and weights.
+        return rankdata(-weights, method='ordinal'), weights
 

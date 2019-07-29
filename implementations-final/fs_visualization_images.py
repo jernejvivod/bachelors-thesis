@@ -7,6 +7,11 @@ from PIL import Image
 from algorithms.relieff import Relieff
 from algorithms.relief import Relief
 from algorithms.swrfStar import SWRFStar
+from algorithms.reliefseq import ReliefSeq
+from algorithms.iterative_relief2 import IterativeRelief
+from algorithms.reliefmss2 import ReliefMSS
+from algorithms.vlsrelief import VLSRelief
+from algorithms.turf import TuRF
 
 # number of best features to mark.
 N_TO_SELECT = 500
@@ -20,7 +25,7 @@ mean_cat = np.mean(data[:60], 0)
 mean_dog = np.mean(data[60:], 0)
 
 # Create dictionary of initialized RBAs.
-algs = {'Relief' : Relief(), 'ReliefF' : Relieff(k=10), 'SWRFStar' : SWRFStar()}
+algs = {'TuRF' : TuRF()}
 
 # Go over RBAs.
 for alg_name in algs.keys():
@@ -35,9 +40,6 @@ for alg_name in algs.keys():
     # Mark selected best features.
     mean_cat_nxt_s[0, alg.rank < N_TO_SELECT, 0] = 255
     mean_dog_nxt_s[0, alg.rank < N_TO_SELECT, 0] = 255
-
-    import pdb
-    pdb.set_trace()
 
     # Save images.
     plt.imsave("./fs-visualization-catdog/" + alg_name + "_cat", mean_cat_nxt_s.reshape(64, 64, 3).astype(np.ubyte).transpose(1, 0, 2), cmap='gray')

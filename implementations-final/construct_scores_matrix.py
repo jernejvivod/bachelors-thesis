@@ -10,6 +10,8 @@ import pickle as pkl
 
 from algorithms.relief import Relief
 from algorithms.relieff import Relieff
+from algorithms.reliefmss import ReliefMSS
+from algorithms.reliefseq import ReliefSeq
 
 def warn(*args, **kwargs):
     pass
@@ -22,6 +24,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection import RepeatedKFold
 
 """
 Algorithm evaluations script.
@@ -36,6 +39,7 @@ Author: Jernej Vivod
 # Set number of CV folds and runs.
 NUM_FOLDS_CV = 10
 NUM_RUNS_CV = 10
+RATIO_FEATURES_TO_SELECT = 0.2
 
 # Set default value for parameter k - number of nearest misses to find (needed for a subset of implemented algorithms).
 PARAM_K = 10
@@ -43,21 +47,20 @@ PARAM_K = 10
 # Define named tuple for specifying names of compared algorithms and the scores matrix of comparisons.
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
-# Specifiy RBAs to compare (first pair comes from algs1, second from algs2).
+# Specifiy RBAs to compare.
 GROUP_IDX = 1  # Results index
-algs1 = OrderedDict([
+algs = OrderedDict([
     ('Relief', Relief()),
-])
-algs2 = OrderedDict([
     ('ReliefF', Relieff(k=PARAM_K)),
+    ('ReliefSeq', ReliefSeq(k_max=20)),
+    ('ReliefMSS', ReliefMSS(k=PARAM_K)),
 ])
 
 # Initialize classifier.
-# clf = KNeighborsClassifier(n_neighbors=3)
-clf = SVC(gamma='auto')
+clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'non-noisy'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
@@ -67,18 +70,19 @@ results = dict()
 results_count = 0
 
 # Go over all pairs of algorithms (iterate over indices in ordered dictionary).
-num_algs1 = len(algs1.keys())
-num_algs2 = len(algs2.keys())
-for idx_alg1 in np.arange(num_algs1):
-    for idx_alg2 in np.arange(num_algs2):
+num_algs = len(algs.keys())
+for idx_alg1 in np.arange(num_algs-1):
+    for idx_alg2 in np.arange(idx_alg1+1, num_algs):
 
         # Initialize results matrix and results tuple.
         results_mat = np.empty((num_datasets, NUM_FOLDS_CV*NUM_RUNS_CV), dtype=np.float)
-        nxt = comparePair(list(algs1.keys())[idx_alg1], list(algs2.keys())[idx_alg2], results_mat)
+        nxt = comparePair(list(algs.keys())[idx_alg1], list(algs.keys())[idx_alg2], results_mat)
       
         # Initialize pipelines for evaluating algorithms.
-        clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs1[nxt.algorithm1]), ('clf', clf)])
-        clf_pipeline2 = Pipeline([('scaling', StandardScaler()), ('rba2', algs2[nxt.algorithm2]), ('clf', clf)])
+        clf_pipeline1 = Pipeline([('scaling', StandardScaler()), ('rba1', algs[nxt.algorithm1]), ('clf', clf)])
+        clf_pipeline2 = Pipeline([('scaling', StandardScaler()), ('rba2', algs[nxt.algorithm2]), ('clf', clf)])
+
+        print("### COMPARING {0} and {1} ###".format(nxt.algorithm1, nxt.algorithm2))
        
         # Initialize row index counter in scores matrix.
         scores_row_idx = 0
@@ -90,14 +94,23 @@ for idx_alg1 in np.arange(num_algs1):
             data = sio.loadmat(data_dirs_path + '/' + dirname + '/data.mat')['data']
             target = np.ravel(sio.loadmat(data_dirs_path + '/' + dirname + '/target.mat')['target'])
 
+            # Select num
+            num_features_to_select = min(max(2, np.int(np.ceil(RATIO_FEATURES_TO_SELECT*data.shape[1]))), 100)
+            clf_pipeline1.set_params(rba1__n_features_to_select=num_features_to_select)
+            clf_pipeline2.set_params(rba2__n_features_to_select=num_features_to_select)
+
+
             print("performing {0} runs of {1}-fold cross validation on dataset '{2}' " \
-                    "(dataset {3}/{4})".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))
+                    "(dataset {3}/{4}).".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))
+            print("Selecting {0}/{1} features.".format(num_features_to_select, data.shape[1]))
 
             # Get scores for first algorithm (create pipeline).
-            scores1_nxt = cross_val_score(clf_pipeline1, data, target, cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=10, random_state=1), verbose=1)
+            scores1_nxt = cross_val_score(clf_pipeline1, data, target, 
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
 
             # Get scores for second algorithm (create pipeline).
-            scores2_nxt = cross_val_score(clf_pipeline2, data, target, cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=10, random_state=1), verbose=1)
+            scores2_nxt = cross_val_score(clf_pipeline2, data, target, 
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
 
             # Compute differences of scores.
             res_nxt = scores1_nxt - scores2_nxt
@@ -113,6 +126,9 @@ for idx_alg1 in np.arange(num_algs1):
         # Save data structure containing results to results dictionary and increment results index counter.
         results[results_count] = nxt
         results_count += 1
+
+import pdb
+pdb.set_trace()
 
 # Save results to file.
 script_path = os.path.abspath(__file__)

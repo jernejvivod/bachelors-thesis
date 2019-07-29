@@ -97,11 +97,23 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        
+        # Get number of instances with class that has minimum number of instances.
+        _, instances_by_class = np.unique(target, return_counts=True)
+        min_instances = np.min(instances_by_class)
+       
+        # If class with minimal number of examples has less than min_incl examples, issue warning
+        # that parameter min_incl was reduced.
+        if min_instances < self.min_incl:
+            warnings.warn("Parameter k was reduced to {0} because one of the classes " \
+                    "does not have {1} instances associated with it.".format(min_instances, self.min_incl), Warning)
+
+
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, 
+            self.rank, self.weights = self._iterative_relief(data, target, self.m, min(min_instances-1, self.min_incl), 
                     self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._iterative_relief(data, target, self.m, self.min_incl, 
+            self.rank, self.weights = self._iterative_relief(data, target, self.m, min(min_instances-1, self.min_incl), 
                     self.dist_func, self.max_iter)
 
         return self
@@ -253,7 +265,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             dist_weights += feature_weights
 
             # Check convergence.
-            if np.sum(np.abs(feature_weights - feature_weights_prev)) < 0.01:
+            if np.sum(np.abs(feature_weights - feature_weights_prev)) < 1.0e-3:
                 convergence = True
 
             feature_weights_prev = feature_weights
