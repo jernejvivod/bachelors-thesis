@@ -8,10 +8,10 @@ function update_weights(data, e, closest_same, closest_other, weights,
 	for t = 1:size(data, 2)
 
 		# Penalty term
-		penalty = sum(abs.(e[t] .- closest_same[:, t])/((max_f_vals[t] .- min_f_vals[t]) .+ 1e-10))
+		penalty = sum(abs.(e[t] .- closest_same[:, t])/(max_f_vals[t] .- min_f_vals[t] .+ eps(Float64)))
 
 		# Reward term
-		reward = sum(weights_mult .* (abs.(e[t] .- closest_other[:, t])/((max_f_vals[t] .- min_f_vals[t] .+ 1e-10))))
+		reward = sum(weights_mult .* (abs.(e[t] .- closest_other[:, t])/(max_f_vals[t] .- min_f_vals[t] .+ eps(Float64))))
 
 		# Weights update
 		weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)

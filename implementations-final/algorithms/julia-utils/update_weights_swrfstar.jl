@@ -3,13 +3,14 @@ function update_weights(data, e, same, other, weights, weights_mult, neigh_weigh
 	for t = 1:size(data, 2)
 
 		# Penalty term
-		penalty = sum(neigh_weights_same.*(abs.(e[t] .- same[:, t])/((max_f_vals[t] .- min_f_vals[t]) .+ 1e-10)))
+		penalty = sum(neigh_weights_same.*(abs.(e[t] .- same[:, t])/(max_f_vals[t] .- min_f_vals[t] .+ eps(Float64))))
 
 		# Reward term
-		reward = sum(neigh_weights_other.*(weights_mult .* (abs.(e[t] .- other[:, t])/((max_f_vals[t] .- min_f_vals[t] .+ 1e-10)))))
+		reward = sum(neigh_weights_other.*(weights_mult .* (abs.(e[t] .- other[:, t])/(max_f_vals[t] .- min_f_vals[t] .+ eps(Float64)))))
 
 		# Weights update
-		weights[t] = weights[t] - penalty/(m*size(same, 1)) + reward/(m*size(other, 1))
+		weights[t] = weights[t] - penalty/(m*size(same, 1) + eps(Float64)) + 
+			reward/(m*size(other, 1) + eps(Float64))
 	end
 
 	# Return updated weights.

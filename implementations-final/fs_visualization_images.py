@@ -28,10 +28,12 @@ mean_cat = np.mean(data[:60], 0)
 mean_dog = np.mean(data[60:], 0)
 
 # Create dictionary of initialized RBAs.
-algs = {'TuRF' : TuRF()}
+algs = {'VLSRelief' : VLSRelief(num_partitions_to_select=200)}
 
 # Go over RBAs.
 for alg_name in algs.keys():
+    print("Testing " + alg_name)
+    
     alg = algs[alg_name]
     alg.fit(data, target)
 

@@ -36,8 +36,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-        # Fit training data.
 
+        # Run I-RELIEF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, 
                     self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func)

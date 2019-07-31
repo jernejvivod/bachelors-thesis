@@ -50,7 +50,7 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
                     "does not have {1} instances associated with it.".format(min_instances, self.k_max), Warning)
 
 
-        # Fit training data.
+        # Run ReliefSeq feature selection algorithm.
         self.rank, self.weights = self._reliefseq(data, target, self.m, min(self.k_max, min_instances), 
                 self.dist_func, learned_metric_func=self.learned_metric_func)
 

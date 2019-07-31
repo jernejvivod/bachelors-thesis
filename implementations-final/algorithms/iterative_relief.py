@@ -21,14 +21,16 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
 
     def __init__(self, n_features_to_select=10,  m=-1, min_incl=3, 
             dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), max_iter=100, learned_metric_func=None):
-        self.m = m  # sample size
-        self.min_incl = min_incl  # minimal number of examples from each class to include in hypersphere
+        self.m = m                  # sample size
+        self.min_incl = min_incl    # minimal number of examples from each class to include in hypersphere
         self.dist_func = dist_func  # metric function to measure distance between examples
-        self.max_iter = max_iter  # maximal number of iterations
-        self.learned_metric_func = learned_metric_func  # learned metric function
+        self.max_iter = max_iter    # maximal number of iterations
+        self.learned_metric_func = learned_metric_func    # learned metric function
         self.n_features_to_select = n_features_to_select  # number of best features to select
 
+
     def min_radius(self, n, data, target, dist_metric, mode, **kwargs):
+
         """
         Compute minimum radius of hypersphere such that for each example in
         the data matrix as the centre the sphere will contain at least n examples from
@@ -108,7 +110,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
             warnings.warn("Parameter k was reduced to {0} because one of the classes " \
                     "does not have {1} instances associated with it.".format(min_instances, self.min_incl), Warning)
 
-
+        # Run Iterative Relief feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._iterative_relief(data, target, self.m, min(min_instances-1, self.min_incl), 
                     self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func)

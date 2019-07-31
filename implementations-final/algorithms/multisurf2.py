@@ -10,13 +10,12 @@ jl = Julia(compiled_modules=False)
 
 class MultiSURF(BaseEstimator, TransformerMixin):
 
-    """sklearn compatible implementation of the SURF algorithm
+    """sklearn compatible implementation of the MultiSURF algorithm
 
-    Casey S Greene, Nadia M Penrod, Jeff Kiralis, Jason H Moore. 
-    Spatially Uniform ReliefF (SURF) for computationally-efficient filtering of gene-gene interactions
+    Ryan J. Urbanowicz, Randal S. Olson, Peter Schmitt, Melissa Meeker, Jason H. Moore.
+    Benchmarking Relief-Based Feature Selection Methods for Bioinformatics Data Mining.
 
-    Author: Jernej Vivod
-
+    author: Jernej Vivod
     """
 
 
@@ -27,14 +26,14 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surf3.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_multisurf3.jl")
 
 
 
     def fit(self, data, target):
 
         """
-        Rank features using SURF feature selection algorithm
+        Rank features using MultiSURF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples
@@ -43,11 +42,12 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-       
+
+        # Run MultiSURF feature selection algorithm.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._multisurf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._surf(data, target, self.dist_func)
+            self.rank, self.weights = self._multisurf(data, target, self.dist_func)
 
         return self
 
@@ -119,9 +119,9 @@ class MultiSURF(BaseEstimator, TransformerMixin):
             raise ValueError("Unknown mode specifier")
 
 
-    def _surf(self, data, target, dist_func, **kwargs):
+    def _multisurf(self, data, target, dist_func, **kwargs):
 
-        """Compute feature scores using SURF algorithm
+        """Compute feature scores using MultiSURF algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows 

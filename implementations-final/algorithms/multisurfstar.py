@@ -35,7 +35,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             self
         """
         
-        # Fit training data.
+        # Run MultiSURFStar feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._multisurfstar(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:

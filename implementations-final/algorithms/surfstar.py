@@ -41,6 +41,8 @@ class SURFStar(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+
+        # Run SURFStar feature selection algorithm.
         if self.learned_metric_func != None: 
             self.rank, self.weights = self._surfStar(data, target, self.dist_func, 
                     learned_metric_func=self.learned_metric_func)

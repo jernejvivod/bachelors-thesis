@@ -26,6 +26,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
 
     def fit(self, data, target):
+
         """
         Rank features using BoostedSURF feature selection algorithm
 
@@ -36,6 +37,8 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+
+        # Run Boosted SURF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, 
                     learned_metric_func=self.learned_metric_func)
@@ -46,6 +49,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
 
     def transform(self, data):
+
         """
         Perform feature selection using computed feature ranks
 
@@ -61,6 +65,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
 
     def fit_transform(self, data, target):
+
         """
         Compute ranks of features and perform feature selection
         Args:

@@ -31,7 +31,9 @@ class Relief(BaseEstimator, TransformerMixin):
         script_path = os.path.abspath(__file__)
         self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief2.jl")
 
+
     def fit(self, data, target):
+
         """
         Rank features using relief feature selection algorithm
 
@@ -43,7 +45,7 @@ class Relief(BaseEstimator, TransformerMixin):
             self
         """
 
-        # If using a learned metric function
+        # Run Relief feature selection algorithm.
         if self.learned_metric_func != None:
            self.rank, self.weights = self._relief(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)            
         else:
@@ -54,6 +56,7 @@ class Relief(BaseEstimator, TransformerMixin):
 
 
     def transform(self, data):
+
         """
         Perform feature selection using computed feature ranks
 
@@ -63,12 +66,14 @@ class Relief(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection
         """
+
         # select n_features_to_select best features and return selected features.
         msk = self.rank <= self.n_features_to_select  # Compute mask.
         return data[:, msk]  # Perform feature selection.
 
 
     def fit_transform(self, data, target):
+
         """
         Compute ranks of features and perform feature selection
         Args:
@@ -78,22 +83,13 @@ class Relief(BaseEstimator, TransformerMixin):
         Returns:
             Array[np.float64] -- result of performing feature selection 
         """
+
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection
 
 
-    #update_weights: go over features and update weights.
-    # @nb.njit
-    # def _update_weights(data, e, closest_same, closest_other, weights, m, max_f_vals, min_f_vals):
-    #     for t in np.arange(data.shape[1]):
-    #         # Update weights
-    #         weights[t] = weights[t] - (np.abs(e[t] - closest_same[t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))/m + \
-    #             (np.abs(e[t] - closest_other[t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))/m
-
-    #     return weights  # Return updated weights
-
-
     def _relief(self, data, target, m, dist_func, **kwargs):
+
         """Compute feature scores using Relief algorithm
 
         Args: 

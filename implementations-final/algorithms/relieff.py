@@ -53,7 +53,8 @@ class Relieff(BaseEstimator, TransformerMixin):
         if min_instances < self.k:
             warnings.warn("Parameter k was reduced to {0} because one of the classes " \
                     "does not have {1} instances associated with it.".format(min_instances, self.k), Warning)
-
+        
+        # Run ReliefF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._relieff(data, target, self.m, min(self.k, min_instances), 
                     self.dist_func, learned_metric_func=self.learned_metric_func)
@@ -90,25 +91,6 @@ class Relieff(BaseEstimator, TransformerMixin):
         """
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection
-
-
-    # update_weights: go over features and update weights.
-    # @nb.njit
-    # def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, m, k, max_f_vals, min_f_vals):
-
-    #     for t in np.arange(data.shape[1]):
-
-    #         # Penalty term
-    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + np.finfo(np.float64).eps))
-
-    #         # Reward term
-    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + np.finfo(np.float64).eps))))
-
-    #         # Weights update
-    #         weights[t] = weights[t] - penalty/(m*k) + reward/(m*k)
-
-    #     # Return updated weights.
-    #     return weights
 
 
     def _relieff(self, data, target, m, k, dist_func, **kwargs):

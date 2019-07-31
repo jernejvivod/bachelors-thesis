@@ -33,7 +33,8 @@ class TuRF(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
+        
+        # Run TuRF algorithm.
         self.rank, self.weights = self._turf(data, target, self.num_it, self.rba)
         return self
 

@@ -11,19 +11,20 @@ jl = Julia(compiled_modules=False)
 
 class BoostedSURF(BaseEstimator, TransformerMixin):
 
-    """sklearn compatible implementation of the MultiSURFStar algorithm
-
-    Granizo-Mackenzie Delaney; Moore, Jason H.
-    Multiple Threshold Spatially Uniform ReliefF for the Genetic Analysis of Complex Human Diseases. 
+    """sklearn compatible implementation of the boostedSURF algorithm
+        
+    Gediminas Bertasius, Delaney Granizo-Mackenzie, Ryan Urbanowicz, Jason H. Moore.
+    Boosted Spatially Uniform ReliefF Algorithm for Genome-Wide Genetic Analysis.
 
     author: Jernej Vivod
 
     """
+
     def __init__(self, n_features_to_select=10, phi=5, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2)), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # Number of features to select.
         self.phi = phi                                    # the phi parameter (update weights when iteration_counter mod phi == 0)
         self.dist_func = dist_func                        # Distance function to use.
-        self.learned_metric_func = learned_metric_func    # learned metric function.
+        self.learned_metric_func = learned_metric_func    # learned metric function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
@@ -31,8 +32,9 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
 
     def fit(self, data, target):
+
         """
-        Rank features using MultiSURFStar feature selection algorithm
+        Rank features using BoostedSURF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples
@@ -42,7 +44,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
             self
         """
         
-        # Fit training data.
+        # Run BoostedSURF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
@@ -83,7 +85,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
     def _boostedSURF(self, data, target, phi, dist_func, **kwargs):
 
-        """Compute feature scores using multiSURFStar algorithm
+        """Compute feature scores using BoostedSURF algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows
@@ -184,12 +186,12 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
             weights_near = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_near, :], 
                     data[miss_neigh_mask_near, :], weights[np.newaxis], weights_mult1[np.newaxis].T,
                     max_f_vals[np.newaxis], min_f_vals[np.newaxis])
-
+            
             # Update feature weights for far examples.
             weights_far = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_far, :], 
                     data[miss_neigh_mask_far, :], weights[np.newaxis], weights_mult2[np.newaxis].T,
                     max_f_vals[np.newaxis], min_f_vals[np.newaxis])
-            
+
             # Subtract scoring for far examples. Subtract previous value of weights to get delta.
             weights = weights_near - (weights_far - weights)
 

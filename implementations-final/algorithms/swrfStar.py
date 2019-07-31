@@ -2,12 +2,9 @@ import numpy as np
 import numba as nb
 from scipy.stats import rankdata
 from functools import partial
-
 import os
 import sys
-
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from julia import Julia
 jl = Julia(compiled_modules=False)
 
@@ -44,7 +41,8 @@ class SWRFStar(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
+        
+        # Run SWRFStar feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
@@ -119,7 +117,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
 
         # Get probabilities of classes in training set.
         p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
-        p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
+        p_classes[:, 1] = p_classes[:, 1] / (np.sum(p_classes[:, 1]) + np.finfo(np.float64).eps)
 
 
         # Go over sampled examples' indices.
@@ -169,12 +167,11 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             t_other = np.mean(distances_other)
             u_other = np.std(distances_other)
 
-
             # Compute weights for examples from same class.
-            neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + 1e-10))) - 1
+            neigh_weights_same = 2.0/(1 + np.exp(-(t_same-distances_same)/(u_same/4.0 + np.finfo(np.float64).eps)) + np.finfo(np.float64).eps) - 1
             
             # Compute weights for examples from different class.
-            neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + 1e-10))) - 1
+            neigh_weights_other = 2.0/(1 + np.exp(-(t_other-distances_other)/(u_other/4.0 + np.finfo(np.float64).eps)) + np.finfo(np.float64).eps) - 1
 
             # Get probabilities of classes not equal to class of sampled example.
             p_classes_other = p_classes[p_classes[:, 0] != target[idx], 1]
@@ -183,7 +180,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
             classes_other = p_classes[p_classes[:, 0] != target[idx], 0]
            
             # Compute diff sum weights for examples from different classes.
-            p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
+            p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1] + np.finfo(np.float64).eps)
             
             # Map weights to 'other' vector and construct weights vector.
             weights_map = np.vstack((classes_other, p_weights))

@@ -32,8 +32,11 @@ data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data'
 target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
 
 # Define RBAs to use.
-rbas = {'ReliefF' : Relieff(k=K_PARAM), 
-        'ReliefSeq' : ReliefSeq(k_max = 15)}
+rbas = {'Relief' : Relief(), 
+        'ReliefF' : Relieff(k=K_PARAM), 
+        'ReliefSeq' : ReliefSeq(k_max = 20),
+        'TuRF' : TuRF(num_it=100),
+        'ReliefMSS' : ReliefMSS(k=K_PARAM)}
 
 
 
@@ -69,10 +72,12 @@ for rba_name in rbas.keys():
 import pdb
 pdb.set_trace()
 
-
 # create .mat files in folders.
 for key in res_dict.keys():
-    # Create folder
-    os.mkdir('./recognition-results/' + key)
-    sio.savemat('./recognition-results/' + key + '/res.mat', {key : res_dict[key]})
+    # Create folder if it does not exist.
+    if not os.path.isdir('./recognition-results'):
+        os.mkdir('./recognition-results')
+    
+    # Save results matrix.
+    sio.savemat('./recognition-results/' + key + '.mat', {key : res_dict[key]})
 
