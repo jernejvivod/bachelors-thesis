@@ -16,9 +16,9 @@ class TuRF(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, n_features_to_select=10, num_it=50, rba=Relieff()):
-        self._n_features_to_select = n_features_to_select  # number of features to select
-        self._num_it = num_it                              # number of iterations to perform
-        self._rba = rba                                    # relief-based algorithm to use
+        self.n_features_to_select = n_features_to_select  # number of features to select
+        self.num_it = num_it                              # number of iterations to perform
+        self.rba = rba                                    # relief-based algorithm to use
 
 
     def fit(self, data, target):
@@ -34,7 +34,7 @@ class TuRF(BaseEstimator, TransformerMixin):
             self
         """
 
-        self.rank, self.weights = self._turf(data, target, self._num_it, self._rba)
+        self.rank, self.weights = self._turf(data, target, self.num_it, self.rba)
         return self
 
     def transform(self, data):
@@ -99,11 +99,15 @@ class TuRF(BaseEstimator, TransformerMixin):
         # Flag to stop iterating if number of features to be removed becomes
         # larger than number of features left in dataset.
         stop_iterating = False
+
+        # Compute value to add to local ranking to get global ranking.
+        rank_add_val = data.shape[1]
         
         # iteration loop
         it_idx = 0
         while it_idx < num_it and not stop_iterating:
             it_idx += 1
+
 
             # Fit rba.
             rba = rba.fit(data_filtered, target)
@@ -119,21 +123,22 @@ class TuRF(BaseEstimator, TransformerMixin):
                 num_to_remove = data_filtered.shape[1]
                 stop_iterating = True
             
-            # Compute value to add to local ranking to get global ranking.
-            rank_add_val = data.shape[1] - num_to_remove
 
             ### Remove num_it/a features with lowest weights. ###
+
             sel = rank_nxt <= rank_nxt.shape[0] - num_to_remove
             ind_sel = np.where(sel)[0]                 # Get indices of kept features.
             ind_rm = np.where(np.logical_not(sel))[0]  # Get indices of removed features.
             ind_rm_original = sel_final[ind_rm]        # Get indices of removed features in original data matrix.
             weights[ind_rm_original] = rba.weights[ind_rm]   # Add weights of discarded features to weights vector.
             rank_rm = rankdata(-rba.weights[ind_rm], method='ordinal')  # Get local ranking of removed features.
-            rank[ind_rm_original] = rank_rm + rank_add_val              # Add value to get global ranking of removed features.
             rank_add_val -= num_to_remove                               # Adjust value that converts local ranking to global ranking.
+            rank[ind_rm_original] = rank_rm + rank_add_val              # Add value to get global ranking of removed features.
             sel_final = sel_final[ind_sel]                   # Filter set of final selection indices.
             data_filtered = data_filtered[:, sel]            # Filter data matrix.
+
             #####################################################
+
 
         # Get and return final rankings and weights.
         weights_final = np.delete(rba.weights, ind_rm)
@@ -141,4 +146,12 @@ class TuRF(BaseEstimator, TransformerMixin):
         rank[sel_final] = rank_final
         weights[sel_final] = weights_final
         return rank, weights
+
+
+if __name__ == '__main__':
+    data = np.random.rand(10, 3)
+    target = (data[:, 0] > data[:, 1]).astype(np.int)
+    turf = TuRF()
+    turf.fit(data, target)
+
 

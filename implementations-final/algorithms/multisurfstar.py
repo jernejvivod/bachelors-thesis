@@ -118,6 +118,7 @@ class MultiSURFStar(BaseEstimator, TransformerMixin):
             # Get mask of examples that are close.
             msk_close = dists < thresh_near
             msk_close[idx] = False
+
             # Get mask of examples that are far.
             msk_far = dists > thresh_far
             msk_far[idx] = False

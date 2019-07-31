@@ -3,7 +3,6 @@ from scipy.stats import rankdata
 from functools import partial
 from nptyping import Array
 from sklearn.metrics import pairwise_distances
-
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class BoostedSURF(BaseEstimator, TransformerMixin):

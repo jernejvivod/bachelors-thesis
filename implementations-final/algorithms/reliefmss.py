@@ -205,8 +205,6 @@ class ReliefMSS(BaseEstimator, TransformerMixin):
             ### MARKING CONSIDERED FEATURES ###
             
             # Compute DM values and DIFF values for each feature of each nearest hit and nearest miss.
-            # nearest hits:
-
             dm_vals_same = self._dm_vals(e[np.newaxis], closest_same, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
             diff_vals_same = np.abs(e - closest_same)/(max_f_vals - min_f_vals + np.finfo(np.float64).eps)
             dm_vals_other = self._dm_vals(e[np.newaxis], closest_other, max_f_vals[np.newaxis], min_f_vals[np.newaxis])
@@ -225,7 +223,6 @@ class ReliefMSS(BaseEstimator, TransformerMixin):
             # Compute diff sum weights for closest examples from different class.
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
-
 
 
             # ------ weights update ------

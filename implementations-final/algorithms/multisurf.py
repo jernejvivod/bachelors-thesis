@@ -139,41 +139,6 @@ class MultiSURF(BaseEstimator, TransformerMixin):
         msk_near[ex_idx] = False
         return np.nonzero(msk_near)[0]
 
-    # # @nb.njit
-    # def _update_weights(self, data, e, closest_same, closest_other, weights, weights_mult, max_f_vals, min_f_vals):
-    #     """
-    #     Update MultiSURF weights as in RELIEFF.
-    #     
-    #     Args:
-    #       data : Arrax[np.float64] -- training examples
-    #       e : Array[np.float64] -- current example
-    #       closest_same : Array[np.float64] -- matrix of hits that pass the threshold
-    #       closest_other : Array[np.float64] -- matrix of misses that pass the threshold
-    #       weights : Array[np.float64] -- feature weights
-    #       weights_mult : Array[np.float64] -- probability multiplication for weights.
-    #       max_f_vals : Array[np.float64] -- maximum feature values
-    #       min_f_vals : Array[np.float64] -- minimum feature values
-    #     
-    #     Returns:
-    #       Array[np.float64] -- updated feature weights for passed example
-    #     
-    #     """
-
-    #     # Go over features.
-    #     for t in np.arange(data.shape[1]):
-
-    #         # Penalty term
-    #         penalty = np.sum(np.abs(e[t] - closest_same[:, t])/((max_f_vals[t] - min_f_vals[t]) + 1e-10))
-
-    #         # Reward term
-    #         reward = np.sum(weights_mult * (np.abs(e[t] - closest_other[:, t])/((max_f_vals[t] - min_f_vals[t] + 1e-10))))
-
-    #         # Weights update
-    #         weights[t] = weights[t] - penalty/(data.shape[0]*closest_same.shape[0]) + reward/(data.shape[0]*closest_other.shape[0])
-
-    #     # Return updated weights.
-    #     return weights
-
 
     def _multiSURF(self, data, target, dist_func, **kwargs):
 
@@ -234,14 +199,13 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
             # Get classes of miss neighbours.
             classes_other = (target[neigh_data[0]])[np.logical_not(neigh_data[1])]
-
-            # Get probabilities of miss classes.
+            
+            # Compute probability weights for misses in considered regions.            
+            weights_mult = np.empty(classes_other.size, dtype=np.float)
             u, c = np.unique(classes_other, return_counts=True)
-            # Compute weights of classes of miss neighbours.
-            class_to_weight = dict(zip(u, c/np.sum(c)))
-
-            # Compute weights multiplier vector.
-            weights_mult = np.array([class_to_weight[cls] for cls in classes_other])
+            neighbour_weights = c/classes_other.size
+            for i, val in enumerate(u):
+                weights_mult[np.where(classes_other == val)] = neighbour_weights[i]
 
             # Update weights.
             weights = self._update_weights(data, data[ex_idx, :][np.newaxis], (data[neigh_data[0, :], :])[neigh_data[1, :], :],

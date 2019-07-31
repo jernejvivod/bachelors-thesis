@@ -1,28 +1,24 @@
 import numpy as np
 from scipy.stats import rankdata
 from functools import partial
-
 from sklearn.metrics import pairwise_distances
-
 import os
 import sys
-
 from sklearn.base import BaseEstimator, TransformerMixin
-
 from julia import Julia
 jl = Julia(compiled_modules=False)
 
-class SURFStar(BaseEstimator, TransformerMixin):
+class SURF(BaseEstimator, TransformerMixin):
 
-    """sklearn compatible implementation of the SURFStar algorithm
+    """sklearn compatible implementation of the SURF algorithm
 
-    Casey S. GreeneDaniel S. HimmelsteinJeff KiralisJason H. Moore.
-    The Informative Extremes: Using Both Nearest and Farthest Individuals Can 
-    Improve Relief Algorithms in the Domain of Human Genetics.
+    Casey S Greene, Nadia M Penrod, Jeff Kiralis, Jason H Moore. 
+    Spatially Uniform ReliefF (SURF) for computationally-efficient filtering of gene-gene interactions
 
     Author: Jernej Vivod
 
     """
+
 
     def __init__(self, n_features_to_select=10, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2)), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
@@ -31,13 +27,14 @@ class SURFStar(BaseEstimator, TransformerMixin):
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surfstar2.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_surf3.jl")
+
 
 
     def fit(self, data, target):
 
         """
-        Rank features using SURFStar feature selection algorithm
+        Rank features using SURF feature selection algorithm
 
         Args:
             data : Array[np.float64] -- matrix of examples
@@ -46,11 +43,11 @@ class SURFStar(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-        if self.learned_metric_func != None: 
-            self.rank, self.weights = self._surfStar(data, target, self.dist_func, 
-                    learned_metric_func=self.learned_metric_func)
+       
+        if self.learned_metric_func != None:
+            self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
-            self.rank, self.weights = self._surfStar(data, target, self.dist_func)
+            self.rank, self.weights = self._surf(data, target, self.dist_func)
 
         return self
 
@@ -116,15 +113,15 @@ class SURFStar(BaseEstimator, TransformerMixin):
             dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
                     np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
             return pairwise_distances(data, metric=dist_func_adapter)
-        elif mode == "example":  # Else if passing in examples.
+        elif mode == "example":  # Else if passing in examples...
             return pairwise_distances(data, metric=dist_func)
         else:
             raise ValueError("Unknown mode specifier")
 
 
-    def _surfStar(self, data, target, dist_func, **kwargs):
+    def _surf(self, data, target, dist_func, **kwargs):
 
-        """Compute feature scores using SURFStar algorithm
+        """Compute feature scores using SURF algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows 
@@ -143,73 +140,46 @@ class SURFStar(BaseEstimator, TransformerMixin):
         # Initialize feature weights.
         weights = np.zeros(data.shape[1], dtype=np.float)
 
+        # Get maximal and minimal feature values.
+        max_f_vals = np.max(data, 0)
+        min_f_vals = np.min(data, 0)
+
         # Compute weighted pairwise distances.
         if 'learned_metric_func' in kwargs:
             dist_func_learned = partial(kwargs['learned_metric_func'], dist_func)
             pairwise_dist = self._get_pairwise_distances(data, dist_func_learned, mode="index")
         else:
-            # Get weighted distance function.
             pairwise_dist = self._get_pairwise_distances(data, dist_func, mode="example")
 
         # Get mean distance between all examples.
-        mean_dist = np.float(np.sum(pairwise_dist))/np.float(np.size(pairwise_dist))
-        
-        # Compute maximal and minimal feature values.
-        max_f_vals = np.max(data, 0)
-        min_f_vals = np.min(data, 0)
+        mean_dist = np.mean(pairwise_dist)
 
         # Go over examples.
         for idx in np.arange(data.shape[0]):
 
-           
-            # Select next example.
-            e = data[idx, :]
+            # Get neighbours within threshold.
+            neigh_mask = pairwise_dist[idx, :] <= mean_dist
+            neigh_mask[idx] = False
 
-            ### NEIGHBOUR INDICES ###
+            # Get mask of neighbours with same class.
+            hit_neigh_mask = np.logical_and(neigh_mask, target == target[idx])
+            # Get mask of neighbours with different class.
+            miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
 
-            # Get indices of near neighbours.
-            neigh_mask_near = pairwise_dist[idx, :] <= mean_dist
-            neigh_mask_near[idx] = False  # Set value at index refering to current example to False.
-            
-            # Get indices of far neighbours.
-            neigh_mask_far = pairwise_dist[idx, :] > mean_dist
+            miss_classes = target[miss_neigh_mask]
+            weights_mult = np.empty(miss_classes.size, dtype=np.float)
+            u, c = np.unique(miss_classes, return_counts=True)
+            neighbour_weights = c/miss_classes.size
+            for i, val in enumerate(u):
+                weights_mult[np.where(miss_classes == val)] = neighbour_weights[i]
 
-            ### /NEIGHBOUR INDICES ###
-
-
-            ###  HIT AND MISS MASKS ###
-
-            # Get mask of near neighbours with same class.
-            hit_neigh_mask_near = np.logical_and(neigh_mask_near, target == target[idx])
-            # Get mask of near neighbours with different class.
-            miss_neigh_mask_near = np.logical_and(neigh_mask_near, target != target[idx])
-
-
-            # Get mask of far neighbours with same class.
-            hit_neigh_mask_far = np.logical_and(neigh_mask_far, target == target[idx])
-            # Get mask of far neighbours with different class.
-            miss_neigh_mask_far = np.logical_and(neigh_mask_far, target != target[idx])
-
-            ###  /HIT AND MISS MASKS ###
-
-
-            ### WEIGHTS UPDATE ###
-
-            # Update feature weights for near examples.
-            weights_near = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_near, :], 
-                    data[miss_neigh_mask_near, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
-
-            # Update feature weights for far examples.
-            weights_far = self._update_weights(data, e[np.newaxis], data[hit_neigh_mask_far, :], 
-                    data[miss_neigh_mask_far, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
-            
-            # Subtract scoring for far examples. Subtract previous value of weights to get delta.
-            weights = weights_near - (weights_far - weights)
-
-            ### /WEIGHTS UPDATE ###
-
+            # Update feature weights
+            weights = self._update_weights(data, data[idx, :][np.newaxis], data[hit_neigh_mask, :], 
+                    data[miss_neigh_mask, :], weights[np.newaxis], weights_mult[np.newaxis].T, 
+                    max_f_vals[np.newaxis], min_f_vals[np.newaxis])
 
         # Create array of feature enumerations based on score.
         rank = rankdata(-weights, method='ordinal')
         return rank, weights
+
 

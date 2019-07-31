@@ -8,10 +8,8 @@ import os
 import sys
 import pickle as pkl
 
-from algorithms.relief import Relief
-from algorithms.relieff import Relieff
-from algorithms.reliefmss import ReliefMSS
-from algorithms.reliefseq import ReliefSeq
+from algorithms.boostedsurf2 import BoostedSURF
+from algorithms.swrfStar import SWRFStar
 
 def warn(*args, **kwargs):
     pass
@@ -51,8 +49,8 @@ comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 GROUP_IDX = 1  # Results index
 
 algs = OrderedDict([
-    ('ReliefF', Relief()),
-    ('ReliefSeq', ReliefSeq(k_max=15))
+    ('BoostedSURF', BoostedSURF()),
+    ('SWRFStar', SWRFStar())
 ])
 
 # Initialize classifier.

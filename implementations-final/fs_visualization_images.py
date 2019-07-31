@@ -8,10 +8,13 @@ from algorithms.relieff import Relieff
 from algorithms.relief import Relief
 from algorithms.swrfStar import SWRFStar
 from algorithms.reliefseq import ReliefSeq
-from algorithms.iterative_relief2 import IterativeRelief
-from algorithms.reliefmss2 import ReliefMSS
 from algorithms.vlsrelief import VLSRelief
 from algorithms.turf import TuRF
+from algorithms.surf import SURF
+from algorithms.surfstar import SURFStar
+from algorithms.multisurf2 import MultiSURF
+from algorithms.multisurfstar2 import MultiSURFStar
+from algorithms.boostedsurf2 import BoostedSURF
 
 # number of best features to mark.
 N_TO_SELECT = 500
