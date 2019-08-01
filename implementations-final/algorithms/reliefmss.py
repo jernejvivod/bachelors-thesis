@@ -62,7 +62,7 @@ class ReliefMSS(BaseEstimator, TransformerMixin):
         # Run ReliefMSS feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._reliefmss(data, target, self.m, 
-                    min(self.k, min_instances), self.dist_func, learned_metric_func=self.learned_metric_func)
+                    min(self.k, min_instances), self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._reliefmss(data, target, self.m, 
                     min(self.k, min_instances), self.dist_func)

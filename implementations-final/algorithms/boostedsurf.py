@@ -41,7 +41,7 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
         # Run Boosted SURF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func, 
-                    learned_metric_func=self.learned_metric_func)
+                    learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._boostedSURF(data, target, self.phi, self.dist_func)
 

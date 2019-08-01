@@ -46,7 +46,7 @@ class SURF(BaseEstimator, TransformerMixin):
         
         # Run SURF feature selection algorithm.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._surf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._surf(data, target, self.dist_func)
 

@@ -44,7 +44,7 @@ class SWRFStar(BaseEstimator, TransformerMixin):
         
         # Run SWRFStar feature selection algorithm.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._swrfstar(data, target, self.m, self.dist_func)
         return self

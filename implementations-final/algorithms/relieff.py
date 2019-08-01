@@ -53,11 +53,11 @@ class Relieff(BaseEstimator, TransformerMixin):
         if min_instances < self.k:
             warnings.warn("Parameter k was reduced to {0} because one of the classes " \
                     "does not have {1} instances associated with it.".format(min_instances, self.k), Warning)
-        
+
         # Run ReliefF feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._relieff(data, target, self.m, min(self.k, min_instances), 
-                    self.dist_func, learned_metric_func=self.learned_metric_func)
+                    self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._relieff(data, target, self.m, min(self.k, min_instances), 
                     self.dist_func)

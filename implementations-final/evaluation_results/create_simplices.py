@@ -31,7 +31,7 @@ for results in glob.glob('*.p'):
                 f.write('{0}, {1}, {2}, {3}, {4}\n'.format(nxt_pair.algorithm1, nxt_pair.algorithm2, pleft, prope, pright))
 
             # Sample posterior and make simplex plot.
-            samples=bt.hierarchical_MC(scores,rope,rho, names=names)
+            samples=bt.hierarchical_MC(scores,rope,rho, names=('MultiSURF', 'MultiSURF*'))
             fig = bt.plot_posterior(samples, names)
             plt.savefig(nxt_pair.algorithm1 + '_' + nxt_pair.algorithm2 + '.png')
 

@@ -113,7 +113,7 @@ class IterativeRelief(BaseEstimator, TransformerMixin):
         # Run Iterative Relief feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._iterative_relief(data, target, self.m, min(min_instances-1, self.min_incl), 
-                    self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func)
+                    self.dist_func, self.max_iter, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._iterative_relief(data, target, self.m, min(min_instances-1, self.min_incl), 
                     self.dist_func, self.max_iter)

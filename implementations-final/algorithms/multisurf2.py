@@ -45,7 +45,7 @@ class MultiSURF(BaseEstimator, TransformerMixin):
 
         # Run MultiSURF feature selection algorithm.
         if self.learned_metric_func != None:
-            self.rank, self.weights = self._multisurf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank, self.weights = self._multisurf(data, target, self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank, self.weights = self._multisurf(data, target, self.dist_func)
 

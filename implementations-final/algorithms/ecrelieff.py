@@ -49,7 +49,7 @@ class ECRelieff(BaseEstimator, TransformerMixin):
         
         # Run ECRelief feature selection algorithm.
         if self.learned_metric_func != None:
-            self.rank = self._ecrelieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
+            self.rank = self._ecrelieff(data, target, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
         else:
             self.rank = self._ecrelieff(data, target, self.m, self.k, self.dist_func)
         return self

@@ -46,7 +46,7 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 1  # Results index
+GROUP_IDX = 2  # Results index
 
 algs = OrderedDict([
     ('SURF', SURF()),
@@ -122,9 +122,6 @@ for idx_alg1 in np.arange(num_algs-1):
         # Save data structure containing results to results dictionary and increment results index counter.
         results[results_count] = nxt
         results_count += 1
-
-import pdb
-pdb.set_trace()
 
 # Save results to file.
 script_path = os.path.abspath(__file__)

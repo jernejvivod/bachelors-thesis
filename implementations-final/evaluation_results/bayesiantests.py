@@ -476,7 +476,8 @@ def plot_simplex(points, names=('C1', 'C2')):
     rcParams.update({'font.size': 16})
     fig.gca().text(-0.08, -0.08, 'p({})'.format(names[0]), color='orange')
     fig.gca().text(0.44, np.sqrt(3) / 2 + 0.05, 'p(rope)', color='orange')
-    fig.gca().text(1.00, -0.08, 'p({})'.format(names[1]), color='orange')
+    fig.gca().text(0.80, -0.08, 'p({})'.format(names[1]), color='orange')
+    # fig.gca().text(1.00, -0.08, 'p({})'.format(names[1]), color='orange')
 
     # project and draw points
     tripts = _project(points[:, [0, 2, 1]])

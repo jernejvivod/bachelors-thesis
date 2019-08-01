@@ -3,13 +3,16 @@ import pandas as pd
 import scipy.io as sio
 
 from collections import namedtuple, OrderedDict
+from functools import partial
 
 import os
 import sys
 import pickle as pkl
 
-from algorithms.multisurf2 import MultiSURF
-from algorithms.multisurfstar2 import MultiSURFStar
+from algorithms.relief import Relief
+from algorithms.relieff2 import Relieff
+from algorithms.reliefmss import ReliefMSS
+from algorithms.reliefseq import ReliefSeq
 
 def warn(*args, **kwargs):
     pass
@@ -24,6 +27,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.model_selection import RepeatedKFold
 
+from julia import Julia
+jl = Julia(compiled_modules=False)
+
 """
 Algorithm evaluations script.
 
@@ -33,6 +39,7 @@ The results are saved in child 'evaluation_results' folder.
 Author: Jernej Vivod
 
 """
+
 
 # Set number of CV folds and runs.
 NUM_FOLDS_CV = 10
@@ -48,9 +55,14 @@ comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 # Specifiy RBAs to compare.
 GROUP_IDX = 1  # Results index
 
+# Get higher order function that produces mass bassed dissimilarity metric function.
+script_path = os.path.abspath(__file__)
+get_dist_func = jl.include(script_path[:script_path.rfind('/')] + "/algorithms/augmentations/me_dissim.jl")
+
+# Algorithms to compare.
 algs = OrderedDict([
-    ('MultiSURF', MultiSURF()),
-    ('MultiSURFStar', MultiSURFStar())
+    ('Relief', Relief()),
+    ('ReliefF_medissim', Relieff(k=PARAM_K))
 ])
 
 # Initialize classifier.
@@ -65,6 +77,7 @@ num_datasets = len(os.listdir(data_dirs_path))
 # Initialize dictionaries for storing results and results counter.
 results = dict()
 results_count = 0
+
 
 # Go over all pairs of algorithms (iterate over indices in ordered dictionary).
 num_algs = len(algs.keys())
@@ -91,10 +104,15 @@ for idx_alg1 in np.arange(num_algs-1):
             data = sio.loadmat(data_dirs_path + '/' + dirname + '/data.mat')['data']
             target = np.ravel(sio.loadmat(data_dirs_path + '/' + dirname + '/target.mat')['target'])
 
+            # Get learned metric function.
+            num_itrees = 10
+            produce_learned_metric_func = lambda x, _ : get_dist_func(10, x)
+
             # Select num
             num_features_to_select = min(max(2, np.int(np.ceil(RATIO_FEATURES_TO_SELECT*data.shape[1]))), 100)
             clf_pipeline1.set_params(rba1__n_features_to_select=num_features_to_select)
             clf_pipeline2.set_params(rba2__n_features_to_select=num_features_to_select)
+            clf_pipeline2.set_params(rba2__learned_metric_func=produce_learned_metric_func)
 
             print("performing {0} runs of {1}-fold cross validation on dataset '{2}' " \
                     "(dataset {3}/{4}).".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))
@@ -123,12 +141,10 @@ for idx_alg1 in np.arange(num_algs-1):
         results[results_count] = nxt
         results_count += 1
 
-import pdb
-pdb.set_trace()
 
 # Save results to file.
 script_path = os.path.abspath(__file__)
 script_path = script_path[:script_path.rfind('/')]
-with open(script_path + "/evaluation_results/results_group_" + str(GROUP_IDX) + ".p", "wb") as handle:
+with open(script_path + "/evaluation_results/me_dissim/results_group_" + str(GROUP_IDX) + ".p", "wb") as handle:
     pkl.dump(results, handle)
 

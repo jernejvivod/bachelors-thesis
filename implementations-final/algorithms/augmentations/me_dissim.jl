@@ -140,10 +140,10 @@ function get_node_masses(itrees, data)
 end
 
 
-function get_dissim_func(num_itrees, data)
+function get_dist_func(num_itrees, data)
     itrees, subs_size = get_n_random_itrees(num_itrees, size(data, 1), data)
     get_node_masses(itrees, data)
 	res_func = (i1, i2) -> mass_based_dissimilarity(data[i1.+1, :], data[i2.+1, :], itrees, subs_size)
-	return (i1, i2, kwargs...) -> res_func.(i1, i2)
+	return (m, i1, i2, kwargs...) -> res_func.(i1, i2)
 end
 
