@@ -85,11 +85,12 @@ class BoostedSURF(BaseEstimator, TransformerMixin):
 
     def _boostedSURF(self, data, target, phi, dist_func, **kwargs):
 
-        """Compute feature scores using BoostedSURF algorithm
+        """Compute feature scores using boostedSURF algorithm
 
         Args:
             data : Array[np.float64] -- Matrix containing examples' data as rows
             target : Array[np.int] -- matrix containing the example's target variable value
+            phi: int -- parameter specifying number of iterations before recomputing distance weights
             dist_func : Callable[[Array[np.float64], Array[np.float64]], Array[np.float64]] -- function for evaluating
             distances between examples. The function should acept two examples or two matrices of examples and return the dictances.
             **kwargs: can contain argument with key 'learned_metric_func' that maps to a function that accepts a distance

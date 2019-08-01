@@ -502,7 +502,7 @@ class TestIRelief(unittest.TestCase):
 
 ## SURF ALGORITHM IMPLEMENTATION UNIT TESTS ########
 
-from algorithms.SURF import SURF
+from algorithms.surf import SURF
 
 class TestSURF(unittest.TestCase):
 
@@ -586,62 +586,6 @@ class TestSURF(unittest.TestCase):
 
         assert_array_almost_equal(dist_mat, correct_res, decimal=5)
 
-    def test_weights_update(self):
-
-        # test data
-        data = np.array([[2.09525, 0.26961, 3.99627],
-                         [9.86248, 6.22487, 8.77424],
-                         [3.22177, 0.16564, 5.79036],
-                         [1.81406, 2.74643, 2.13259],
-                         [2.79316, 1.71541, 2.97578],
-                         [4.77481, 8.01036, 7.57880]])
-        target = np.array([1, 2, 2, 1, 3, 1])
-
-        # Compute maximal and minimal feature values.
-        max_f_vals = np.max(data, 0)
-        min_f_vals = np.min(data, 0)
-
-        # Initialize algorithm.
-        surf = SURF()
-
-        # Initialize distance function.
-        dist_func = lambda x1, x2: np.sum(np.abs(x1-x2))
-
-        # Compute pairwise distance matrix.
-        dist_mat = surf._get_pairwise_distances(data, dist_func=dist_func, mode='example')
-        
-        # Compute mean distance between examples.
-        mean_dist = np.mean(dist_mat)
-
-        # sampled example from dataset
-        idx = 2
-        e = data[idx, :]
-        
-        # Get mask for neighbours and exlude distance of example to self from it.
-        neigh_mask = dist_mat[idx, :] <= mean_dist
-        neigh_mask[idx] = False
-        
-        # Get masks of hit and miss neighbours.
-        hit_neigh_mask = np.logical_and(neigh_mask, target == target[idx])
-        miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
-        
-        # Initialize feature weights row vector.
-        weights = np.zeros(data.shape[1], dtype=np.float)
-
-        # Update feature weights using method.
-        updated_weights = surf._update_weights(data, e[np.newaxis], data[hit_neigh_mask, :], 
-                data[miss_neigh_mask, :], weights[np.newaxis], max_f_vals[np.newaxis], min_f_vals[np.newaxis])
-                
-        # Results computed by hand.
-        neigh_mask_correct = np.array([True, False, False, True, True, False])
-        hit_neigh_mask_correct = np.array([False, False, False, False, False, False])
-        miss_neigh_mask_correct = np.array([True, False, False, True, True, False])
-        updated_weights_correct = np.array([0.0204515, 0.02998854, 0.06914647])
-
-        assert_array_equal(neigh_mask, neigh_mask_correct)
-        assert_array_equal(hit_neigh_mask, hit_neigh_mask_correct)
-        assert_array_equal(miss_neigh_mask, miss_neigh_mask_correct)
-        assert_array_almost_equal(updated_weights, updated_weights_correct, decimal=5)
 
 ####################################################
 
@@ -721,7 +665,7 @@ class TestVlsRelief(unittest.TestCase):
 
 ## BOOSTEDSURF ALGORITHM IMPLEMENTATION UNIT TESTS ###
 
-from algorithms.boostedSURF import BoostedSURF
+from algorithms.boostedsurf import BoostedSURF
 
 class TestBoostedSURF(unittest.TestCase):
 
@@ -844,7 +788,7 @@ class TestBoostedSURF(unittest.TestCase):
 
 ## MULTISURF ALGORITHM IMPLEMENTATION UNIT TESTS ###
 
-from algorithms.multiSURF import MultiSURF
+from algorithms.multisurf import MultiSURF
 
 class TestMultiSURF(unittest.TestCase):
 
@@ -1010,7 +954,7 @@ class TestMultiSURF(unittest.TestCase):
 
 ## SURFSTAR ALGORITHM IMPLEMENTATION UNIT TESTS ######
 
-from algorithms.SURFStar import SURFStar
+from algorithms.surfstar import SURFStar
 
 class TestSURFStar(unittest.TestCase):
 
@@ -1100,7 +1044,7 @@ class TestSURFStar(unittest.TestCase):
 
 ## MULTISURFSTAR ALGORITHM IMPLEMENTATION UNIT TESTS #
 
-from algorithms.multiSURFStar import MultiSURFStar
+from algorithms.multisurfstar import MultiSURFStar
 
 class TestMultiSURFStar(unittest.TestCase):
 
@@ -1304,29 +1248,29 @@ class TestReliefSeq(unittest.TestCase):
 
 ## RELIEFMMS ALGORITHM IMPLEMENTATION UNIT TESTS ######
 
-from algorithms.reliefmms import ReliefMMS
+from algorithms.reliefmss import ReliefMSS
 
-class TestReliefMMS(unittest.TestCase):
+class TestReliefMSS(unittest.TestCase):
 
     # Test initialization with default parameters.
     def test_init_default(self):
-        reliefmms = ReliefMMS()
-        self.assertEqual(reliefmms.n_features_to_select, 10)
-        self.assertEqual(reliefmms.m, -1)
-        self.assertEqual(reliefmms.k, 5)
-        self.assertNotEqual(reliefmms.dist_func, None)
-        self.assertEqual(reliefmms.learned_metric_func, None)
+        reliefmss = ReliefMSS()
+        self.assertEqual(reliefmss.n_features_to_select, 10)
+        self.assertEqual(reliefmss.m, -1)
+        self.assertEqual(reliefmss.k, 5)
+        self.assertNotEqual(reliefmss.dist_func, None)
+        self.assertEqual(reliefmss.learned_metric_func, None)
 
     # Test initialization with explicit parameters.
     def test_init_custom(self):
-        reliefmms = ReliefMMS(n_features_to_select=15, m=80, k=3, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
+        reliefmss = ReliefMSS(n_features_to_select=15, m=80, k=3, dist_func=lambda x1, x2: np.sum(np.abs(x1-x2), 1), 
                 learned_metric_func = lambda x1, x2: np.sum(np.abs(x1-x2), 1))
 
-        self.assertEqual(reliefmms.n_features_to_select, 15)
-        self.assertEqual(reliefmms.m, 80)
-        self.assertEqual(reliefmms.k, 3)
-        self.assertNotEqual(reliefmms.dist_func, None)
-        self.assertNotEqual(reliefmms.learned_metric_func, None)
+        self.assertEqual(reliefmss.n_features_to_select, 15)
+        self.assertEqual(reliefmss.m, 80)
+        self.assertEqual(reliefmss.k, 3)
+        self.assertNotEqual(reliefmss.dist_func, None)
+        self.assertNotEqual(reliefmss.learned_metric_func, None)
     
     # Test update of weights.
     def test_weights_update(self):
@@ -1345,7 +1289,7 @@ class TestReliefMMS(unittest.TestCase):
 
         # Initialize algorithm.
         k = 2
-        reliefmms = ReliefMMS(n_features_to_select=2, k=k)
+        reliefmss = ReliefMSS(n_features_to_select=2, k=k)
         
         # sampled example
         e = data[4, :]
@@ -1427,7 +1371,7 @@ class TestReliefMMS(unittest.TestCase):
 
         
         # Compute results using method
-        weights = reliefmms._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k,
+        weights = reliefmss._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis], weights_mult[np.newaxis].T, m, k,
                 max_f_vals[np.newaxis], min_f_vals[np.newaxis], dm_vals_same, dm_vals_other, features_msk_same, features_msk_other)
         
         # Assert equality with results computed by "hand"
@@ -1606,7 +1550,7 @@ class TestECRelieff(unittest.TestCase):
         rank = ecrelieff._perform_ec_ranking(data, target, weights, mu_vals)
 
         # Assert equality with result computed by hand.
-        correct_res = np.array([3, 2, 1])
+        correct_res = np.array([1, 2, 3])
         assert_array_equal(rank, correct_res)
 
 

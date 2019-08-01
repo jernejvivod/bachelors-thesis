@@ -166,7 +166,8 @@ class SURF(BaseEstimator, TransformerMixin):
             hit_neigh_mask = np.logical_and(neigh_mask, target == target[idx])
             # Get mask of neighbours with different class.
             miss_neigh_mask = np.logical_and(neigh_mask, target != target[idx])
-
+            
+            # Compute probability weights for misses in considered region.
             miss_classes = target[miss_neigh_mask]
             weights_mult = np.empty(miss_classes.size, dtype=np.float)
             u, c = np.unique(miss_classes, return_counts=True)
