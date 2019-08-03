@@ -59,7 +59,7 @@ algs = OrderedDict([
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final3'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final4'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
