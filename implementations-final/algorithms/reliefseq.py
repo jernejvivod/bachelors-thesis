@@ -53,7 +53,7 @@ class ReliefSeq(BaseEstimator, TransformerMixin):
         # Run ReliefSeq feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._reliefseq(data, target, self.m, min(self.k_max, min_instances), 
-                    self.dist_func, learned_metric_func=self.learned_metric_func(data, target))
+                    self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._reliefseq(data, target, self.m, min(self.k_max, min_instances), 
                     self.dist_func, learned_metric_func=None)

@@ -28,7 +28,7 @@ mean_cat = np.mean(data[:60], 0)
 mean_dog = np.mean(data[60:], 0)
 
 # Create dictionary of initialized RBAs.
-algs = {'VLSRelief' : VLSRelief(num_partitions_to_select=200)}
+algs = {'VLSRelief' : VLSRelief(num_partitions_to_select=1000)}
 
 # Go over RBAs.
 for alg_name in algs.keys():

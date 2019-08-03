@@ -48,18 +48,18 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 1  # Results index
+GROUP_IDX = 0  # Results index
 
 algs = OrderedDict([
-    ('ReliefF', Relief()),
-    ('ReliefSeq', ReliefSeq(k_max=15))
+    ('ReliefF', Relieff(k=PARAM_K)),
+    ('ReliefSeq', ReliefSeq(k_max=10))
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final3'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
@@ -124,9 +124,6 @@ for idx_alg1 in np.arange(num_algs-1):
         # Save data structure containing results to results dictionary and increment results index counter.
         results[results_count] = nxt
         results_count += 1
-
-import pdb
-pdb.set_trace()
 
 # Save results to file.
 script_path = os.path.abspath(__file__)

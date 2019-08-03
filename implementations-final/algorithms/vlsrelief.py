@@ -51,7 +51,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         return self
 
 
-    def transform(self, data, target):
+    def transform(self, data):
         """
         Perform feature selection using computed feature ranks
 
@@ -68,6 +68,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
 
 
     def fit_transform(self, data, target):
+
         """
         Compute ranks of features and perform feature selection
         Args:

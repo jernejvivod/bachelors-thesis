@@ -1,1 +1,1 @@
-MultiSURF, MultiSURFStar, 0.0, 0.0, 1.0
+ReliefF, ReliefSeq, 0.0525, 0.9385, 0.009

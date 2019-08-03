@@ -8,8 +8,10 @@ import os
 import sys
 import pickle as pkl
 
-from algorithms.boostedsurf2 import BoostedSURF
-from algorithms.swrfStar import SWRFStar
+from algorithms.relief import Relief
+from algorithms.relieff import Relieff
+from algorithms.reliefmss import ReliefMSS
+from algorithms.reliefseq import ReliefSeq
 
 def warn(*args, **kwargs):
     pass
@@ -46,18 +48,18 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 1  # Results index
+GROUP_IDX = 0  # Results index
 
 algs = OrderedDict([
-    ('SWRFStar', SWRFStar()),
-    ('BoostedSURF', BoostedSURF()),
+    ('ReliefF', Relieff(k=PARAM_K)),
+    ('ReliefMSS', ReliefMSS(k=PARAM_K))
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'prob'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final3'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
@@ -102,11 +104,11 @@ for idx_alg1 in np.arange(num_algs-1):
 
             # Get scores for first algorithm (create pipeline).
             scores1_nxt = cross_val_score(clf_pipeline1, data, target, 
-                    cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
 
             # Get scores for second algorithm (create pipeline).
             scores2_nxt = cross_val_score(clf_pipeline2, data, target, 
-                    cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
 
             # Compute differences of scores.
             res_nxt = scores1_nxt - scores2_nxt
@@ -122,9 +124,6 @@ for idx_alg1 in np.arange(num_algs-1):
         # Save data structure containing results to results dictionary and increment results index counter.
         results[results_count] = nxt
         results_count += 1
-
-import pdb
-pdb.set_trace()
 
 # Save results to file.
 script_path = os.path.abspath(__file__)

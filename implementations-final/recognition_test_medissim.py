@@ -13,7 +13,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import StratifiedKFold
 
 from algorithms.relief import Relief
-from algorithms.relieff2 import Relieff
+from algorithms.relieff import Relieff
 from algorithms.reliefseq import ReliefSeq
 from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
@@ -22,7 +22,7 @@ from julia import Julia
 jl = Julia(compiled_modules=False)
 
 # constants
-NUM_FEATURES_TO_SELECT_LIM = 300 
+NUM_FEATURES_TO_SELECT_LIM = 300
 NUM_RUNS_CV = 10
 NUM_FOLDS_CV = 5
 K_PARAM = 10
@@ -34,17 +34,18 @@ clf = KNeighborsClassifier(n_neighbors=5)
 data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data']
 target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
 
-
 # Get higher order function that produces mass bassed dissimilarity metric function.
 script_path = os.path.abspath(__file__)
 get_dist_func = jl.include(script_path[:script_path.rfind('/')] + "/algorithms/augmentations/me_dissim.jl")
 
 # Get learned metric function.
-num_itrees = 10
-produce_learned_metric_func = lambda x, _ : get_dist_func(10, x)
+num_itrees = 5
+produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 # Define RBAs to use.
-rbas = {'ReliefF_medissim' : Relieff(k=K_PARAM, learned_metric_func=produce_learned_metric_func)}
+rbas = {'ReliefSeq_medissim' : ReliefSeq(k_max=15, learned_metric_func=produce_learned_metric_func),
+        'ReliefSeq' : ReliefSeq(k_max=15),
+        }
 
 # Initialize dictionary for storing results.
 res_dict = dict.fromkeys(rbas.keys())

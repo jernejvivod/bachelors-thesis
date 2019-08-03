@@ -17,6 +17,7 @@ from algorithms.relieff import Relieff
 from algorithms.reliefseq import ReliefSeq
 from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
+from algorithms.vlsrelief import VLSRelief
 
 # constants
 NUM_FEATURES_TO_SELECT_LIM = 300
@@ -32,11 +33,7 @@ data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data'
 target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
 
 # Define RBAs to use.
-rbas = {'Relief' : Relief(), 
-        'ReliefF' : Relieff(k=K_PARAM), 
-        'ReliefSeq' : ReliefSeq(k_max = 20),
-        'TuRF' : TuRF(num_it=100),
-        'ReliefMSS' : ReliefMSS(k=K_PARAM)}
+rbas = {'VLSRelief' : VLSRelief(partition_size=10, num_partitions_to_select=10, num_subsets=100)}
 
 
 
