@@ -43,8 +43,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         # Run VLSRelief feature selection algorithm.
         if self.learned_metric_func != None:
             self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
-                    self.num_subsets, self.partition_size, self.m, self.k, self.dist_func, 
-                    learned_metric_func=self.learned_metric_func(data, target))
+                    self.num_subsets, self.partition_size, self.m, self.k, self.dist_func, learned_metric_func=self.learned_metric_func)
         else:
             self.rank, self.weights = self._vlsrelief(data, target, self.num_partitions_to_select, 
                     self.num_subsets, self.partition_size, self.m, self.k, self.dist_func)
@@ -119,7 +118,7 @@ class VLSRelief(BaseEstimator, TransformerMixin):
         # Initialize ReliefF algorithm.
         if 'learned_metric_func' in kwargs:
             relieff = Relieff(n_features_to_select=self.n_features_to_select, 
-                    m=m, k=k, dist_func=dist_func, learned_metric_func=learned_metric_func)
+                    m=m, k=k, dist_func=dist_func, learned_metric_func=kwargs['learned_metric_func'])
         else:
             relieff = Relieff(n_features_to_select=self.n_features_to_select, 
                     m=m, k=k, dist_func=dist_func)

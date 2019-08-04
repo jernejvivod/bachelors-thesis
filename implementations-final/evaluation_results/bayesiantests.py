@@ -202,8 +202,9 @@ def signrank(x, rope, prior_strength=0.6, prior_place=ROPE, nsamples=50000,
     return pl, pe, pr
 
 
-def hierarchical(diff, rope, rho,  upperAlpha=2, lowerAlpha =1, lowerBeta = 0.01, upperBeta = 0.1,std_upper_bound=1000, verbose=False, names=('C1', 'C2') ):
-     # upperAlpha, lowerAlpha, upperBeta, lowerBeta, are the upper and lower bound for alpha and beta, which are the parameters of 
+def hierarchical(diff, rope, rho,  upperAlpha=2, lowerAlpha=1, lowerBeta = 0.01, upperBeta = 0.1,std_upper_bound=1000, verbose=False, names=('C1', 'C2') ):
+    #def hierarchical(diff, rope, rho,  upperAlpha=3, lowerAlpha=0, lowerBeta = 0.005, upperBeta = 0.2,std_upper_bound=2000, verbose=False, names=('C1', 'C2') ):
+    # upperAlpha, lowerAlpha, upperBeta, lowerBeta, are the upper and lower bound for alpha and beta, which are the parameters of 
     #the  Gamma distribution used as a prior for the degress of freedom.
     #std_upper_bound is a constant which multiplies the sample standard deviation, to set the upper limit of the prior on the
     #standard deviation.  Posterior inferences are insensitive to this value as this is large enough, such as 100 or 1000.
@@ -216,7 +217,7 @@ def hierarchical(diff, rope, rho,  upperAlpha=2, lowerAlpha =1, lowerBeta = 0.01
               format(c1=names[0], c2=names[1], pl=pl, pe=pe, pr=pr))
     return pl, pe, pr
 
-def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha =1, lowerBeta = 0.01, upperBeta = 0.1, std_upper_bound=1000, names=('C1', 'C2') ):
+def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha=1, lowerBeta = 0.01, upperBeta = 0.1, std_upper_bound=1000, names=('C1', 'C2') ):
     # upperAlpha, lowerAlpha, upperBeta, lowerBeta, are the upper and lower bound for alpha and beta, which are the parameters of 
     #the  Gamma distribution used as a prior for the degress of freedom.
     #std_upper_bound is a constant which multiplies the sample standard deviation, to set the upper limit of the prior on the
