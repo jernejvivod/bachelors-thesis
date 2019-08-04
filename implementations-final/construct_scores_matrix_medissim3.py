@@ -51,9 +51,9 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 0  # Results index
+GROUP_IDX = 2  # Results index
 
-# Get higher order function that produces mass bassed dissimilarity metric function.
+# Get higher order function that produces mass based dissimilarity metric function.
 script_path = os.path.abspath(__file__)
 get_dist_func = jl.include(script_path[:script_path.rfind('/')] + "/algorithms/augmentations/me_dissim.jl")
 
@@ -63,8 +63,8 @@ produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 
 algs = OrderedDict([
-    ('ReliefF', Relieff(k=PARAM_K)),
-    ('ReliefF_medissim', Relieff(k=PARAM_K, learned_metric_func=produce_learned_metric_func))
+    ('ReliefMSS', ReliefMSS(k=PARAM_K),
+    ('ReliefMSS', ReliefMSS(k=PARAM_K, learned_metric_func=produce_learned_metric_func))
 ])
 
 # Initialize classifier.
