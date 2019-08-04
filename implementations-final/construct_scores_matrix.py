@@ -52,14 +52,14 @@ GROUP_IDX = 0  # Results index
 
 algs = OrderedDict([
     ('ReliefF', Relieff(k=PARAM_K)),
-    ('ReliefSeq', ReliefSeq(k_max=10))
+    ('ReliefSeq', ReliefSeq(k_max=15))
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final4'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final6'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
