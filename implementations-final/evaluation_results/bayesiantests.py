@@ -372,6 +372,9 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha=1, lowerBeta = 0
         /*mu0 and std0 are not explicitly sampled here.
         Stan automatically samples them: mu0 as uniform and std0 as
         uniform over its domain (std0Low,std0Hi).*/
+        
+        // CHANGE
+        std0 ~ uniform(stdLow, stdHi);
 
         //sampling the degrees of freedom
         nuMinusOne ~ gamma ( gammaAlpha, gammaBeta);
@@ -409,9 +412,10 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha=1, lowerBeta = 0
                    'upperBeta' : upperBeta,
                    'lowerBeta' : lowerBeta}
 
+
     #Call to Stan code
     fit = pystan.stan(model_code=hierarchical_code, data=hierachical_dat,
-                      iter=1000, chains=4)
+                      iter=1000, chains=4, control=dict(max_treedepth=12))
     
     la = fit.extract(permuted=True)  # return a dictionary of arrays
     mu = la['delta0']
