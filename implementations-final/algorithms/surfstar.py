@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 from scipy.stats import rankdata
 from functools import partial
 from sklearn.metrics import pairwise_distances
@@ -110,9 +111,19 @@ class SURFStar(BaseEstimator, TransformerMixin):
         # If computing distances between examples by referencing them by indices.
         if mode == "index":
             # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
-            return pairwise_distances(data, metric=dist_func_adapter)
+            # dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
+            #         np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
+            # return pairwise_distances(data, metric=dist_func_adapter)
+
+            dist_vec = np.empty(np.int(data.shape[0]*(data.shape[0]-1)/2), dtype=np.float)
+            count = 0
+            for i in np.arange(1, data.shape[0]-1):
+                for j in np.arange(i+1, data.shape[0]):
+                    dist_vec[count] = dist_func(i, j)
+                    count += 1
+
+            # return pairwise_distances(data, metric=dist_func_adapter)
+            return sp.spatial.distance.squareform(dist_vec)
         elif mode == "example":  # Else if passing in examples.
             return pairwise_distances(data, metric=dist_func)
         else:
