@@ -49,11 +49,11 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 1  # Results index
+GROUP_IDX = 'ReliefSeqVLS_new'  # Results index
 
 algs = OrderedDict([
-    ('ReliefMSS', ReliefMSS(k=PARAM_K)),
-    ('TuRF', TuRF())
+    ('ReliefSeq', ReliefSeq(k_max=10)),
+    ('VLSRelief', VLSRelief(num_subsets=10, num_partitions_to_select=3, partitions_size=10))
 ])
 
 # Initialize classifier.
