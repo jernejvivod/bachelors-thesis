@@ -18,6 +18,12 @@ from algorithms.reliefseq import ReliefSeq
 from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
 from algorithms.vlsrelief import VLSRelief
+from algorithms.surf import SURF
+from algorithms.surfstar import SURFStar
+from algorithms.multisurf2 import MultiSURF
+from algorithms.multisurfstar2 import MultiSURFStar
+from algorithms.swrfStar import SWRFStar
+from algorithms.boostedsurf2 import BoostedSURF
 
 # constants
 NUM_FEATURES_TO_SELECT_LIM = 300
@@ -33,7 +39,13 @@ data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data'
 target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
 
 # Define RBAs to use.
-rbas = {'VLSRelief' : VLSRelief(partition_size=10, num_partitions_to_select=10, num_subsets=100)}
+rbas = {'SURF' : SURF(),
+        'SURFStar' : SURFStar(),
+        'MultiSURF' : MultiSURF(),
+        'MultiSURFStar' : MultiSURFStar(),
+        'SWRFStar' : SWRFStar(),
+        'BoostedSURF' : BoostedSURF()
+        }
 
 
 
@@ -65,9 +77,6 @@ for rba_name in rbas.keys():
 
         # Add computed CV score to vector of values in results dictionary.
         (res_dict[rba_name])[num_features_to_select-1] = score
-
-import pdb
-pdb.set_trace()
 
 # create .mat files in folders.
 for key in res_dict.keys():

@@ -8,8 +8,12 @@ import os
 import sys
 import pickle as pkl
 
-from algorithms.surf import SURF
-from algorithms.surfstar import SURFStar
+from algorithms.relief import Relief
+from algorithms.relieff import Relieff
+from algorithms.reliefmss import ReliefMSS
+from algorithms.reliefseq import ReliefSeq
+from algorithms.turf import TuRF
+from algorithms.vlsrelief import VLSRelief
 
 def warn(*args, **kwargs):
     pass
@@ -46,11 +50,11 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 2  # Results index
+GROUP_IDX = "TuRFVLS_new"  # Results index
 
 algs = OrderedDict([
-    ('SURF', SURF()),
-    ('SURFStar', SURFStar())
+    ('TuRF', TuRF(num_it=10)),
+    ('VLSRelief', VLSRelief(num_partitions_to_select=15, partition_size=7, num_subsets=10))
 ])
 
 # Initialize classifier.
@@ -95,6 +99,7 @@ for idx_alg1 in np.arange(num_algs-1):
             num_features_to_select = min(max(2, np.int(np.ceil(RATIO_FEATURES_TO_SELECT*data.shape[1]))), 100)
             clf_pipeline1.set_params(rba1__n_features_to_select=num_features_to_select)
             clf_pipeline2.set_params(rba2__n_features_to_select=num_features_to_select)
+            clf_pipeline2.set_params(rba2__num_it=max(max(10, 0.1*data.shape[1]), 100))
 
             print("performing {0} runs of {1}-fold cross validation on dataset '{2}' " \
                     "(dataset {3}/{4}).".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))

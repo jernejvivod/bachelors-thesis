@@ -17,6 +17,8 @@ from algorithms.relieff import Relieff
 from algorithms.reliefseq import ReliefSeq
 from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
+from algorithms.surfstar import SURFStar
+from algorithms.swrfStar import SWRFStar
 
 from julia import Julia
 jl = Julia(compiled_modules=False)
@@ -43,8 +45,8 @@ num_itrees = 5
 produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 # Define RBAs to use.
-rbas = {'ReliefSeq_medissim' : ReliefSeq(k_max=15, learned_metric_func=produce_learned_metric_func),
-        'ReliefSeq' : ReliefSeq(k_max=15),
+rbas = {'SWRFStar_medissim' : SWRFStar(learned_metric_func=produce_learned_metric_func),
+        'SWRFStar' : SWRFStar(),
         }
 
 # Initialize dictionary for storing results.

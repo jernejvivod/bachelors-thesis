@@ -12,6 +12,8 @@ from algorithms.relief import Relief
 from algorithms.relieff import Relieff
 from algorithms.reliefmss import ReliefMSS
 from algorithms.reliefseq import ReliefSeq
+from algorithms.surf import SURF
+from algorithms.swrfStar import SWRFStar
 
 def warn(*args, **kwargs):
     pass
@@ -51,7 +53,7 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = 1  # Results index
+GROUP_IDX = 'SWRF'  # Results index
 
 # Get higher order function that produces mass bassed dissimilarity metric function.
 script_path = os.path.abspath(__file__)
@@ -63,8 +65,8 @@ produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 
 algs = OrderedDict([
-    ('ReliefSeq', ReliefSeq(k_max=15),
-    ('ReliefSeq_medissim', ReliefSeq(k_max=15, learned_metric_func=produce_learned_metric_func))
+    ('SWRFStar', SWRFStar()),
+    ('SWRFStar_medissim', SWRFStar(learned_metric_func=produce_learned_metric_func))
 ])
 
 # Initialize classifier.

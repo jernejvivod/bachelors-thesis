@@ -10,6 +10,9 @@ import pickle as pkl
 
 from algorithms.boostedsurf2 import BoostedSURF
 from algorithms.swrfStar import SWRFStar
+from algorithms.relieff import Relieff
+from algorithms.reliefseq import ReliefSeq
+from algorithms.reliefmss import ReliefMSS
 
 def warn(*args, **kwargs):
     pass
@@ -49,15 +52,15 @@ comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 GROUP_IDX = 10  # Results index
 
 algs = OrderedDict([
-    ('SWRFStar', SWRFStar()),
-    ('BoostedSURF', BoostedSURF()),
+    ('ReliefF', Relieff(k=PARAM_K)),
+    ('ReliefMSS', ReliefMSS(k=PARAM_K)),
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final8'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))

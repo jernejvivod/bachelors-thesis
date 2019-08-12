@@ -415,7 +415,7 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha=1, lowerBeta = 0
 
     #Call to Stan code
     fit = pystan.stan(model_code=hierarchical_code, data=hierachical_dat,
-                      iter=1000, chains=4, control=dict(max_treedepth=12))
+                      iter=3000, chains=4, control=dict(max_treedepth=10))
     
     la = fit.extract(permuted=True)  # return a dictionary of arrays
     mu = la['delta0']
