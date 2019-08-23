@@ -374,7 +374,9 @@ def hierarchical_MC(diff, rope, rho,   upperAlpha=2, lowerAlpha=1, lowerBeta = 0
         uniform over its domain (std0Low,std0Hi).*/
         
         // CHANGE
-        std0 ~ uniform(stdLow, stdHi);
+        std0 ~ normal((stdHi - stdLow)/2, stdHi - stdLow);
+        //std0 ~ uniform(stdLow, stdHi);
+        //delta0 ~ normal((deltaHi - deltaLow)/2, deltaHi - deltaLow);
 
         //sampling the degrees of freedom
         nuMinusOne ~ gamma ( gammaAlpha, gammaBeta);

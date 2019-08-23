@@ -9,8 +9,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from julia import Julia
 jl = Julia(compiled_modules=False)
 
-from metric_learn import LMNN
-
 
 class Relieff(BaseEstimator, TransformerMixin):
 
@@ -31,7 +29,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff2.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff3.jl")
 
 
     def fit(self, data, target):
@@ -45,11 +43,6 @@ class Relieff(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
-
-        trans = LMNN()
-        trans.fit(data, target)
-        data = trans.transform(data)
-
         
         # Get number of instances with class that has minimum number of instances.
         _, instances_by_class = np.unique(target, return_counts=True)
@@ -140,7 +133,6 @@ class Relieff(BaseEstimator, TransformerMixin):
         p_classes = (np.vstack(np.unique(target, return_counts=True)).T).astype(np.float)
         p_classes[:, 1] = p_classes[:, 1] / np.sum(p_classes[:, 1])
 
-
         # Go over sampled examples' indices.
         for idx in idx_sampled:
 
@@ -204,7 +196,9 @@ class Relieff(BaseEstimator, TransformerMixin):
             # Compute diff sum weights for closest examples from different class.
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
-           
+            
+            import pdb
+            pdb.set_trace()
 
             # ------ weights update ------
             weights = np.array(self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis],
@@ -213,4 +207,15 @@ class Relieff(BaseEstimator, TransformerMixin):
 
         # Return feature rankings and weights.
         return rankdata(-weights, method='ordinal'), weights
+
+
+if __name__ == '__main__':
+    import scipy.io as sio
+    data = sio.loadmat('data.mat')['data']
+    target = np.ravel(sio.loadmat('target.mat')['target'])
+    relieff = Relieff(k=10)
+    relieff.fit(data, target)
+
+    print(relieff.weights)
+
 

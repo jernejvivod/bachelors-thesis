@@ -53,7 +53,7 @@ comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 GROUP_IDX = "ReliefSeqVLS_new"  # Results index
 
 algs = OrderedDict([
-    ('ReliefSeq', ReliefSeq(k_max=10)),
+    ('ReliefSeq', ReliefSeq(k_max=15)),
     ('VLSRelief', VLSRelief(num_partitions_to_select=15, partition_size=7, num_subsets=10))
 ])
 
