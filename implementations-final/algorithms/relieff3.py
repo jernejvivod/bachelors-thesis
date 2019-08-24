@@ -240,12 +240,3 @@ class Relieff(BaseEstimator, TransformerMixin):
         # Return feature rankings and weights.
         return rankdata(-weights, method='ordinal'), weights
 
-
-if __name__ == '__main__':
-    import scipy.io as sio
-    data = sio.loadmat('data.mat')['data']
-    target = np.ravel(sio.loadmat('target.mat')['target'])
-    relieff = Relieff()
-    relieff.fit(data, target)
-    print(relieff.weights)
-
