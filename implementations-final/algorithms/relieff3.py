@@ -20,16 +20,17 @@ class Relieff(BaseEstimator, TransformerMixin):
     Author: Jernej Vivod
     """
    
-    def __init__(self, n_features_to_select=10, m=-1, k=5, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, m=-1, k=5, sig_weights=3, dist_func=lambda x1, x2 : np.sum(np.abs(x1-x2), 1), learned_metric_func=None):
         self.n_features_to_select = n_features_to_select  # number of features to select
         self.m = m                                        # example sample size
         self.k = k                                        # the k parameter
+        self.sig_weights = sig_weights                    # parameter that specifies how much to take distance weights into account
         self.dist_func = dist_func                        # distance function
         self.learned_metric_func = learned_metric_func    # learned distance function
 
         # Use function written in Julia programming language to update feature weights.
         script_path = os.path.abspath(__file__)
-        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff3.jl")
+        self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relieff4.jl")
 
 
     def fit(self, data, target):
@@ -141,7 +142,7 @@ class Relieff(BaseEstimator, TransformerMixin):
 
             # Get index of next sampled example in group of examples with same class.
             idx_class = idx - np.sum(target[:idx] != target[idx])
-          
+            
             # If keyword argument with keyword 'learned_metric_func' exists...
             if 'learned_metric_func' in kwargs:
 
@@ -157,7 +158,16 @@ class Relieff(BaseEstimator, TransformerMixin):
                 # Find k closest examples from same class.
                 idxs_closest_same = np.argpartition(distances_same, k-1)[:k]
                 closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
+
+                # Get ranks of nearest neighbours in vector of sorted distances.
+                closest_same_ranks = rankdata(distances_same[idxs_closest_same], method='ordinal')
+
+                # Compute distance weights.
+                exp_rank = np.exp(-np.power(closest_same_ranks/self.sig_weights, 2))
+                closest_same_weights = exp_rank/np.sum(exp_rank)
+
             else:
+
                 # Find k nearest examples from same class.
                 distances_same = dist_func(e, data[target == target[idx], :])
 
@@ -168,8 +178,20 @@ class Relieff(BaseEstimator, TransformerMixin):
                 idxs_closest_same = np.argpartition(distances_same, k-1)[:k]
                 closest_same = (data[target == target[idx], :])[idxs_closest_same, :]
 
+                # Get ranks of nearest neighbours in vector of sorted distances.
+                closest_same_ranks = rankdata(distances_same[idxs_closest_same], method='ordinal')
+
+                # Compute distance weights.
+                exp_rank = np.exp(-np.power(closest_same_ranks/self.sig_weights, 2))
+                closest_same_weights = exp_rank/np.sum(exp_rank)
+
+
             # Allocate matrix template for getting nearest examples from other classes.
             closest_other = np.empty((k * (len(classes) - 1), data.shape[1]), dtype=np.float)
+
+            # Allocate vector for storing ranks of distances of nearest misses for each class
+            # not equal to class of sampled example.
+            closest_other_weights = np.empty(k * (len(classes) - 1), dtype=np.float)
 
             # Initialize pointer for adding examples to template matrix.
             top_ptr = 0
@@ -179,11 +201,23 @@ class Relieff(BaseEstimator, TransformerMixin):
                     if 'learned_metric_func' in kwargs:
                         # get closest k examples with class cl if using learned distance metric.
                         distances_cl = dist(np.where(target == cl)[0])
+
                     else:
                         # Get closest k examples with class cl.
                         distances_cl = dist_func(e, data[target == cl, :])
+
                     # Get indices of closest exmples from class cl.
                     idx_closest_cl = np.argpartition(distances_cl, k-1)[:k]
+
+                    # Get ranks of nearest neighbours in vector of sorted distances.
+                    closest_other_ranks_nxt = rankdata(distances_cl[idx_closest_cl], method='ordinal')
+
+                    # Compute distance weights.
+                    exp_rank = np.exp(-np.power(closest_other_ranks_nxt/self.sig_weights, 2))
+                    closest_other_weights_nxt = exp_rank/np.sum(exp_rank)
+                    
+                    # Add computed weights to weights vector.
+                    closest_other_weights[top_ptr:top_ptr+k] = closest_other_weights_nxt
 
                     # Add found closest examples to matrix.
                     closest_other[top_ptr:top_ptr+k, :] = (data[target == cl, :])[idx_closest_cl, :]
@@ -196,12 +230,22 @@ class Relieff(BaseEstimator, TransformerMixin):
             # Compute diff sum weights for closest examples from different class.
             p_weights = p_classes_other/(1 - p_classes[p_classes[:, 0] == target[idx], 1])
             weights_mult = np.repeat(p_weights, k) # Weights multiplier vector
-            
+
             # ------ weights update ------
             weights = np.array(self._update_weights(data, e[np.newaxis], closest_same, closest_other, weights[np.newaxis],
-                    weights_mult[np.newaxis].T, m, k, max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
+                    weights_mult[np.newaxis].T, closest_same_weights[np.newaxis].T, closest_other_weights[np.newaxis].T, m, k, 
+                    max_f_vals[np.newaxis], min_f_vals[np.newaxis]))
 
 
         # Return feature rankings and weights.
         return rankdata(-weights, method='ordinal'), weights
+
+
+if __name__ == '__main__':
+    import scipy.io as sio
+    data = sio.loadmat('data.mat')['data']
+    target = np.ravel(sio.loadmat('target.mat')['target'])
+    relieff = Relieff()
+    relieff.fit(data, target)
+    print(relieff.weights)
 
