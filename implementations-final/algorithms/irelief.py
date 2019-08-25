@@ -111,53 +111,48 @@ class IRelief(BaseEstimator, TransformerMixin):
             raise ValueError("Unknown mode specifier")
 
 
-    def _get_mean_m_vals(self, data, classes):
+    def _get_mean_mh_vals(self, data, classes, dist_weights, sig):
+
         """
-        get mean m values for each example in dataset. Mean m value of an example is the average
-        difference of examples with a different class and this example.
+        get mean m and mean h values for each example in dataset.
 
         Args:
             data : Array[np.float64] -- training examples
             classes : Array[np.int] -- class values of examples
 
         Returns:
-            Array[np.float64] -- array of average m values for each training example
-        """
-       
-        # Allocate matrix for storing results.
-        mean_m = np.empty(data.shape, dtype=np.float)
-
-        # Go over rows of pairwise differences.
-        for idx in np.arange(data.shape[0]):
-            mean_m[idx, :] = np.mean(np.abs(data - data[idx, :])[classes != classes[idx], :], 0)
-
-        return mean_m
-
-
-    def _get_mean_h_vals(self, data, classes):
-        """
-        get mean h values for each example in dataset. Mean h value of an example is the average
-        difference of examples with a same class and this example (excluding difference with itself).
-
-        Args:
-            data : Array[np.float64] -- training examples
-            classes : Array[np.int] -- class values of examples
-
-        Returns:
-            Array[np.float64] -- array of average h values for each training example
+            Array[np.float64], Array[np.float64] -- array of average m values for each training example,
+            array of average h values for each training example.
         """
        
         # Allocate matrix for storing results.
         mean_h = np.empty(data.shape, dtype=np.float)
+        mean_m = np.empty(data.shape, dtype=np.float)
 
         # Go over rows of pairwise differences.
         for idx in np.arange(data.shape[0]):
-            mean_h[idx, :] = np.mean(np.abs(data - data[idx, :])[classes == classes[idx], :], 0)
 
-        return mean_h
+            # Compute m values.
+            m_vals = np.abs(data[idx, :] - data[classes != classes[idx], :])
+            h_vals = np.abs(data[idx, :] - data[np.logical_and(classes == classes[idx], np.arange(data.shape[0]) != idx), :])
+
+            # Compute kernel function values.
+            f_m_vals = np.exp(-np.sum(dist_weights*m_vals, axis=1)/sig)
+            f_h_vals = np.exp(-np.sum(dist_weights*h_vals, axis=1)/sig)
+
+            # Compute vector of probabilities of misses being nearest misses.
+            pm_vec = f_m_vals/np.sum(f_m_vals)
+            ph_vec = f_h_vals/np.sum(f_h_vals)
+
+            # Compute mean_m_values for each example
+            mean_m[idx, :] = np.sum(pm_vec[np.newaxis].T * m_vals, 0)
+            mean_h[idx, :] = np.sum(ph_vec[np.newaxis].T * h_vals, 0)
+
+        return mean_m, mean_h
 
 
-    def _get_gamma_vals(self, dist_mat, classes, kern_func):
+    def _get_gamma_vals(self, dist_mat, classes, dist_weights, sig):
+
         """
         For each example get probability of it being an outlier.
         Function depends on weights (through distance matrix).
@@ -175,12 +170,14 @@ class IRelief(BaseEstimator, TransformerMixin):
         po_vals = np.empty(dist_mat.shape[0], dtype=np.float)
 
         # Go over rows of distance matrix.
-        for idx, r in enumerate(dist_mat):
-            # Compute probability for next example.
-            numerator = np.sum(kern_func(r[classes != classes[idx]]))
-            msk = np.array(np.arange(dist_mat.shape[0])) != idx
-            denominator = np.sum(kern_func(r[msk]))
-            po_vals[idx] = numerator/denominator
+        for idx in np.arange(data.shape[0]):
+
+            # Compute probability of n-th example being an outlier.
+            m_vals = np.abs(data[idx, :] - data[classes != classes[idx], :])
+            d_vals = np.abs(data[idx, :] - data)
+            f_m_vals = np.exp(-np.sum(dist_weights*m_vals, axis=1)/sig)
+            f_d_vals = np.exp(-np.sum(dist_weights*d_vals, axis=1)/sig)
+            po_vals[idx] = np.sum(f_m_vals)/np.sum(f_d_vals)
         
         # Gamma values are probabilities of examples being inliers.
         return 1 - po_vals
@@ -225,9 +222,6 @@ class IRelief(BaseEstimator, TransformerMixin):
         convergence = False 
         dist_weights = np.ones(data.shape[1], dtype=np.float)/initial_w_div
 
-        # Get mean m and mean h vals for all examples.
-        mean_m_vals = self._get_mean_m_vals(data, target)
-        mean_h_vals = self._get_mean_h_vals(data, target)
 
         # Initialize iteration counter.
         iter_count = 0
@@ -247,7 +241,12 @@ class IRelief(BaseEstimator, TransformerMixin):
                 pairwise_dist = self._get_pairwise_distances(data, dist_func_w, mode="example")
 
             # Get gamma values and compute nu.
-            gamma_vals = self._get_gamma_vals(pairwise_dist, target, lambda d: np.exp(-d/k_width))
+            gamma_vals = self._get_gamma_vals(pairwise_dist, target, dist_weights, sig=3)
+            
+            # Get mean m and mean h vals for all examples.
+            mean_m_vals, mean_h_vals = self._get_mean_mh_vals(data, target, dist_weights, sig=3)
+            
+            # Get nu vector.
             nu = self._get_nu(gamma_vals, mean_m_vals, mean_h_vals, data.shape[0]) 
 
             # Update distance weights.
@@ -269,3 +268,11 @@ class IRelief(BaseEstimator, TransformerMixin):
         # Return feature ranks and last distance weights.
         return rank, dist_weights
 
+
+if __name__ == '__main__':
+    import scipy.io as sio
+    data = sio.loadmat('data.mat')['data']
+    target = np.ravel(sio.loadmat('target.mat')['target'])
+    irelief = IRelief() 
+    irelief.fit(data, target)
+    print(irelief.weights)
