@@ -9,7 +9,7 @@ import scipy.io as sio
 
 import pdb
 
-from algorithms.relieff import Relieff
+from algorithms.relieff2 import Relieff
 
 """
 
@@ -100,6 +100,5 @@ for train_idx, test_idx in kf.split(data):
 
     print("finished fold {0}/{1}".format(idx_fold-1, NUM_SPLITS*NUM_REPEATS))
 
-pdb.set_trace()
-sio.savemat('relieff_vec.mat', {'res' : cv_results})
+sio.savemat('relieff2_vec.mat', {'res' : cv_results})
 
