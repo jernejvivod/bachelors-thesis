@@ -54,7 +54,7 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = "ReliefF"  # Results index
+GROUP_IDX = "ReliefSeq"  # Results index
 
 # Get higher order function that produces mass bassed dissimilarity metric function.
 script_path = os.path.abspath(__file__)
@@ -65,8 +65,8 @@ num_itrees = 10
 produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 algs = OrderedDict([
-    ('ReliefF', Relieff(k=PARAM_K)),
-    ('ReliefF (mbd)', Relieff(k=PARAM_K, learned_metric_func=produce_learned_metric_func))
+    ('ReliefSeq', ReliefSeq(k_max=10)),
+    ('ReliefSeq (mbd)', ReliefSeq(k_max=10, learned_metric_func=produce_learned_metric_func))
 ])
 
 # Initialize classifier.

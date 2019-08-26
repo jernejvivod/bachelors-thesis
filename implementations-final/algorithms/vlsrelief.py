@@ -7,6 +7,7 @@ from algorithms.relieff import Relieff
 
 
 class VLSRelief(BaseEstimator, TransformerMixin):
+
     """sklearn compatible implementation of the vlsRelief algorithm
 
     Margaret J. Eppstein, Paul Haake.

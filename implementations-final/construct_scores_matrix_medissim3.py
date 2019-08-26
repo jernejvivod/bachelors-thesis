@@ -15,6 +15,7 @@ from algorithms.reliefseq import ReliefSeq
 from algorithms.surfstar import SURFStar
 from algorithms.surf import SURF
 from algorithms.boostedsurf2 import BoostedSURF
+from algorithms.vlsrelief import VLSRelief
 
 def warn(*args, **kwargs):
     pass
@@ -54,7 +55,7 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = "ReliefF"  # Results index
+GROUP_IDX = "VLSRelief"  # Results index
 
 # Get higher order function that produces mass bassed dissimilarity metric function.
 script_path = os.path.abspath(__file__)
@@ -65,8 +66,8 @@ num_itrees = 10
 produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 algs = OrderedDict([
-    ('ReliefF', Relieff(k=PARAM_K)),
-    ('ReliefF (mbd)', Relieff(k=PARAM_K, learned_metric_func=produce_learned_metric_func))
+    ('VLSRelief', VLSRelief(num_partitions_to_select=10, partition_size=5, num_subsets=20)),
+    ('VLSRelief (mbd)', VLSRelief(num_partitions_to_select=10, partition_size=5, num_subsets=20, learned_metric_func=produce_learned_metric_func))
 ])
 
 # Initialize classifier.
