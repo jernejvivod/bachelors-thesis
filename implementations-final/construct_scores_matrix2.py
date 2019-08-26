@@ -14,6 +14,8 @@ from algorithms.reliefmss import ReliefMSS
 from algorithms.reliefseq import ReliefSeq
 from algorithms.turf import TuRF
 from algorithms.vlsrelief import VLSRelief
+from algorithms.iterative_relief import IterativeRelief
+from algorithms.irelief import IRelief
 
 def warn(*args, **kwargs):
     pass
@@ -50,11 +52,11 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = "ReliefSeqTurf2_new"  # Results index
+GROUP_IDX = "TuRF_VLSRelief_"  # Results index
 
 algs = OrderedDict([
-    ('ReliefSeq', ReliefSeq(k_max=10)),
-    ('TuRF', TuRF())
+    ('TuRF', TuRF(num_it=20)),
+    ('VLSRelief', VLSRelief(num_partitions_to_select=15, num_subsets=10))
 ])
 
 # Initialize classifier.
@@ -99,7 +101,6 @@ for idx_alg1 in np.arange(num_algs-1):
             num_features_to_select = min(max(2, np.int(np.ceil(RATIO_FEATURES_TO_SELECT*data.shape[1]))), 100)
             clf_pipeline1.set_params(rba1__n_features_to_select=num_features_to_select)
             clf_pipeline2.set_params(rba2__n_features_to_select=num_features_to_select)
-            clf_pipeline2.set_params(rba2__num_it=min(20, 0.1*data.shape[1]))
 
             print("performing {0} runs of {1}-fold cross validation on dataset '{2}' " \
                     "(dataset {3}/{4}).".format(NUM_RUNS_CV, NUM_FOLDS_CV, dirname, idx_dataset+1, num_datasets))

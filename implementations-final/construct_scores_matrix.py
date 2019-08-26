@@ -14,6 +14,8 @@ from algorithms.reliefmss import ReliefMSS
 from algorithms.reliefseq import ReliefSeq
 from algorithms.turf import TuRF
 from algorithms.vlsrelief import VLSRelief
+from algorithms.iterative_relief import IterativeRelief
+from algorithms.irelief import IRelief
 
 def warn(*args, **kwargs):
     pass
@@ -50,11 +52,11 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = "ReliefSeqVLS_new"  # Results index
+GROUP_IDX = "iterative"  # Results index
 
 algs = OrderedDict([
-    ('ReliefSeq', ReliefSeq(k_max=15)),
-    ('VLSRelief', VLSRelief(num_partitions_to_select=15, partition_size=7, num_subsets=10))
+    ('iterative_relief',IterativeRelief()),
+    ('I-RELIEF', IRelief())
 ])
 
 # Initialize classifier.

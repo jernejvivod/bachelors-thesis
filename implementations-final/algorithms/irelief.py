@@ -15,15 +15,13 @@ class IRelief(BaseEstimator, TransformerMixin):
 
     """
     
-    def __init__(self, n_features_to_select=10, dist_func=lambda w, x1, x2 : np.sum(np.abs(w*(x1-x2))), 
-            max_iter=100, k_width=5, conv_condition=1.0e-12, initial_w_div=1, learned_metric_func=None):
+    def __init__(self, n_features_to_select=10, max_iter=100,
+            k_width=5, conv_condition=1.0e-12, initial_w_div=1):
         self.n_features_to_select = n_features_to_select  # number of features to select
-        self.dist_func = dist_func                        # distance function to use
         self.max_iter = max_iter                          # Maximum number of iterations
         self.k_width = k_width                            # kernel width
         self.conv_condition = conv_condition              # convergence condition
         self.initial_w_div = initial_w_div                # initial weight quotient
-        self.learned_metric_func = learned_metric_func    # learned metric function
 
     def fit(self, data, target):
         """
@@ -38,12 +36,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
 
         # Run I-RELIEF feature selection algorithm.
-        if self.learned_metric_func != None:
-            self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, 
-                    self.conv_condition, self.initial_w_div, learned_metric_func=self.learned_metric_func(data, target))
-        else:
-            self.rank, self.weights = self._irelief(data, target, self.dist_func, self.max_iter, self.k_width, 
-                    self.conv_condition, self.initial_w_div)
+        self.rank, self.weights = self._irelief(data, target, self.max_iter, self.k_width, 
+                self.conv_condition, self.initial_w_div)
 
         # Return reference to self.
         return self
@@ -76,40 +70,6 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
         self.fit(data, target)  # Fit data
         return self.transform(data)  # Perform feature selection 
-
-
-    def _get_pairwise_distances(self, data, dist_func, mode):
-        """
-        Compute pairwise distance matrix for examples in training data set.
-
-        Args:
-            data : Array[np.float64] -- Matrix of training examples
-            dist_func -- function that computes distances between examples
-                if mode == 'example' then dist_func : Callable[Array[[np.float64], Array[np.float64l]], np.float64]
-                if mode == 'index' then dist_func: Callable[[int, int], np.float64]
-            mode : str -- if equal to 'example' the distances are computed in standard metric space by computing
-            distances between examples using passed metric function (dist_func). If equal to 'index', the distances
-            are computed in learned metric space. In this case, the metric function (dist_func) takes indices of examples
-            to compare.
-        
-        Returns:
-            Pairwise distance matrix : Array[np.float64]
-
-        Raises:
-            ValueError : if the mode parameter does not have an allowed value ('example' or 'index')
-        """
-
-        # If computing distances between examples by referencing them by indices.
-        if mode == "index":
-            # Allocate matrix for distance matrix and compute distances.
-            dist_func_adapter = lambda x1, x2 : dist_func(np.int(np.where(np.sum(np.equal(x1, data), 1) == data.shape[1])[0][0]),
-                    np.int(np.where(np.sum(np.equal(x2, data), 1) == data.shape[1])[0][0]))
-            return pairwise_distances(data, metric=dist_func_adapter)
-        elif mode == "example":  # Else if passing in examples.
-            return pairwise_distances(data, metric=dist_func) 
-        else:
-            raise ValueError("Unknown mode specifier")
-
 
     def _get_mean_mh_vals(self, data, classes, dist_weights, sig):
 
@@ -151,7 +111,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         return mean_m, mean_h
 
 
-    def _get_gamma_vals(self, dist_mat, classes, dist_weights, sig):
+    def _get_gamma_vals(self, data, classes, dist_weights, sig):
 
         """
         For each example get probability of it being an outlier.
@@ -167,7 +127,7 @@ class IRelief(BaseEstimator, TransformerMixin):
         """
 
         # Allocate array for storing results.
-        po_vals = np.empty(dist_mat.shape[0], dtype=np.float)
+        po_vals = np.empty(data.shape[0], dtype=np.float)
 
         # Go over rows of distance matrix.
         for idx in np.arange(data.shape[0]):
@@ -200,19 +160,17 @@ class IRelief(BaseEstimator, TransformerMixin):
         return (1/nrow) * np.sum(gamma_vals[np.newaxis].T * (mean_m_vals - mean_h_vals), 0)
 
 
-    def _irelief(self, data, target, dist_func, max_iter, k_width, conv_condition, initial_w_div, **kwargs):
+    def _irelief(self, data, target,  max_iter, k_width, conv_condition, initial_w_div):
         """
         Implementation of the I-Relief algoritm as described by Yiun et al.
 
         Args:
             data : Array[np.float64] -- training examples
             target: Array[np.int] -- examples' class values
-            dist_func : Callable[[np.floatt64, Array[np.float64]], np.float64] -- weighted distance function 
             max_iter: maximum number of iterations to perform
             k_width : np.float64 -- kernel width (used in gamma values computation)
             conv_condition : np.float64 -- threshold for convergence declaration (if change in weights < conv_condition, stop running the iteration loop)
             initial_w_div : np.float64 -- value with which to divide the initial weights values
-            kwargs -- can contain keyword argument 'learned_metric_func' which contains the learned metric function (takes two indices)
 
         Returns:
             Array[np.int], Array[np.float64] -- array of feature rankings and array of feature scores
@@ -229,19 +187,8 @@ class IRelief(BaseEstimator, TransformerMixin):
         ### Main iteration loop. ###
         while iter_count < max_iter and not convergence: 
 
-            # weighted distance function
-            dist_func_w = partial(dist_func, dist_weights) 
-
-            # Compute weighted pairwise distances.
-            if 'learned_metric_func' in kwargs:
-                dist_func_w_learned = partial(kwargs['learned_metric_func'], dist_func_w)
-                pairwise_dist = self._get_pairwise_distances(data, dist_func_w_learned, mode="index")
-            else:
-                # Get weighted distance function.
-                pairwise_dist = self._get_pairwise_distances(data, dist_func_w, mode="example")
-
             # Get gamma values and compute nu.
-            gamma_vals = self._get_gamma_vals(pairwise_dist, target, dist_weights, sig=3)
+            gamma_vals = self._get_gamma_vals(data, target, dist_weights, sig=3)
             
             # Get mean m and mean h vals for all examples.
             mean_m_vals, mean_h_vals = self._get_mean_mh_vals(data, target, dist_weights, sig=3)

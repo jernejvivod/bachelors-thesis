@@ -1,0 +1,21 @@
+1. Create tournament diagram for first and third groups. -------------------------------- 26. 8. 2019
+2. Implement pipeline for comparing two classifiers on single dataset. ------------------ 26. 8. 2019
+3. Make table of probabilities for me_dissim comparisons. ------------------------------- 26. 8. 2019
+4. Create table of probabilities for learned metric functions on ovariancancer dataset --
+5. create recognition test plots for all groups and learned metric functions ------------
+
+### k-fold validation for ovariancancer dataset ### ------------------------------------- 26. 8. 2019
+
+kf = KFold(n_splits=2)
+
+for train, test in kf.split(X):
+	# split train into validation and train
+	
+	# perform grid search on validation set (LOO)
+	
+	# train model on training set
+
+	# test on test set and save score		
+
+
+
