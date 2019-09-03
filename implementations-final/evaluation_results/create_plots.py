@@ -16,17 +16,15 @@ import pdb
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Random data for testing ###
-# acc1 = sio.loadmat('')['res']
-# acc2 = sio.loadmat('')['res']
+acc1 = np.ravel(sio.loadmat('irelief.mat')['res'])         # pleft
+acc2 = np.ravel(sio.loadmat('iterative_relief.mat')['res'])     # pright
 
-acc1 = np.random.rand(10*10)
-acc2 = np.random.rand(10*10)
+#acc1 = np.random.rand(10*10)
+#acc2 = np.random.rand(10*10)/2
 
 # Names 
-names = ("ReliefF (k-nearest)", "ReliefF (utežene razdalje /diff/)")
-x = np.zeros((acc1.shape[0], 2), dtype=np.float)
-x[:,1] = acc1/100
-x[:,0] = acc2/100
+names = ("I-RELIEF", "Iterativni Relief")
+x = acc2 - acc1
 
 # Set rope values
 rope=0.01
@@ -48,6 +46,7 @@ plt.axvline(x=-rope,color='orange')
 plt.axvline(x=rope,color='orange')
 
 # add label
-plt.xlabel('ReliefF (k-nearest) - ReliefF (utežene razdalje /diff/)')
+plt.xlabel('Iterativni Relief - I-RELIEF')
 
 plt.show()
+

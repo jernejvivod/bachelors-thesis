@@ -14,11 +14,12 @@ from sklearn.model_selection import StratifiedKFold
 
 from algorithms.relief import Relief
 from algorithms.relieff import Relieff
-from algorithms.relieff2 import Relieff
 from algorithms.reliefseq import ReliefSeq
 from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
 from algorithms.vlsrelief import VLSRelief
+
+from metric_learn import ITML_Supervised
 
 
 # constants
@@ -35,7 +36,7 @@ data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data'
 target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
 
 # Define RBAs to use.
-rbas = {'ReliefF_LMNNOUT' : Relieff(k=K_PARAM, dist_func=lambda x1, x2 : np.sqrt(np.sum(np.abs(x1-x2)**2.0, 1)))}
+rbas = {'ReliefF_ITMLOUT' : Relieff(k=K_PARAM, dist_func=lambda x1, x2 : np.sqrt(np.sum(np.abs(x1-x2)**2.0, 1)))}
 
 # Initialize dictionary for storing results.
 res_dict = dict.fromkeys(rbas.keys())
@@ -49,7 +50,7 @@ for rba_name in rbas.keys():
     print("### Testing {0} ###".format(rba_name))
 
     # Initialize next pipeline.
-    clf_pipeline = Pipeline([('scaling', StandardScaler()), ('rba', rbas[rba_name]), ('clf', clf)])
+    clf_pipeline = Pipeline([('scaling', StandardScaler()), ('lmf', ITML_Supervised()), ('rba', rbas[rba_name]), ('clf', clf)])
     
     # Go over values on x axis.
     for num_features_to_select in np.arange(1, NUM_FEATURES_TO_SELECT_LIM+1):

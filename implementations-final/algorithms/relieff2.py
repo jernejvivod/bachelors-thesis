@@ -10,7 +10,7 @@ from julia import Julia
 jl = Julia(compiled_modules=False)
 
 
-class Relieff(BaseEstimator, TransformerMixin):
+class Relieff2(BaseEstimator, TransformerMixin):
 
     """sklearn compatible implementation of the ReliefF algorithm
     

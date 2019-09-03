@@ -12,18 +12,12 @@ from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import KFold
 from sklearn.model_selection import StratifiedKFold
 
-from algorithms.relief import Relief
-from algorithms.relieff import Relieff
-from algorithms.reliefseq import ReliefSeq
-from algorithms.reliefmss import ReliefMSS
-from algorithms.turf import TuRF
-from algorithms.vlsrelief import VLSRelief
+from algorithms.ecrelieff import ECRelieff
 from algorithms.surf import SURF
 from algorithms.surfstar import SURFStar
-from algorithms.multisurf2 import MultiSURF
-from algorithms.multisurfstar2 import MultiSURFStar
-from algorithms.swrfStar import SWRFStar
-from algorithms.boostedsurf2 import BoostedSURF
+from algorithms.multisurf import MultiSURF
+from algorithms.multisurfstar import MultiSURFStar
+from algorithms.boostedsurf import BoostedSURF
 
 # constants
 NUM_FEATURES_TO_SELECT_LIM = 300
@@ -35,16 +29,16 @@ K_PARAM = 10
 clf = KNeighborsClassifier(n_neighbors=5)
 
 # Load data and target values.
-data = sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/data.mat')['data']
-target = np.ravel(sio.loadmat('./datasets/final/LSVT_voice_rehabilitation/target.mat')['target'])
+data = sio.loadmat('./datasets/ecoli/data.mat')['data']
+target = np.ravel(sio.loadmat('./datasets/ecoli/target.mat')['target'])
 
 # Define RBAs to use.
-rbas = {'SURF' : SURF(),
-        'SURFStar' : SURFStar(),
-        'MultiSURF' : MultiSURF(),
-        'MultiSURFStar' : MultiSURFStar(),
-        'SWRFStar' : SWRFStar(),
-        'BoostedSURF' : BoostedSURF()
+rbas = {'ECReliefF' : ECRelieff(),
+        #'SURF' : SURF(),
+        #'SURF*' : SURFStar(),
+        #'MultiSURF*' : MultiSURFStar(),
+        #'MultiSURF' : MultiSURF(),
+        #'BoostedSURF' : BoostedSURF(),
         }
 
 
@@ -85,5 +79,5 @@ for key in res_dict.keys():
         os.mkdir('./recognition-results')
     
     # Save results matrix.
-    sio.savemat('./recognition-results/' + key + '.mat', {key : res_dict[key]})
+    sio.savemat('./recognition-results/' + key + '_ecoli.mat', {key : res_dict[key]})
 

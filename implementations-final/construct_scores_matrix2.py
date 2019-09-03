@@ -8,8 +8,8 @@ import os
 import sys
 import pickle as pkl
 
-from algorithms.relief import Relief
 from algorithms.relieff import Relieff
+from algorithms.relieff2 import Relieff2
 from algorithms.reliefmss import ReliefMSS
 from algorithms.reliefseq import ReliefSeq
 from algorithms.turf import TuRF
@@ -52,11 +52,11 @@ PARAM_K = 10
 comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 
 # Specifiy RBAs to compare.
-GROUP_IDX = "TuRF_VLSRelief_"  # Results index
+GROUP_IDX = "ReliefF2_ReliefF_"  # Results index
 
 algs = OrderedDict([
-    ('TuRF', TuRF(num_it=20)),
-    ('VLSRelief', VLSRelief(num_partitions_to_select=15, num_subsets=10))
+    ('ReliefF2', Relieff2(k=PARAM_K)),
+    ('ReliefF', Relieff(k=PARAM_K))
 ])
 
 # Initialize classifier.

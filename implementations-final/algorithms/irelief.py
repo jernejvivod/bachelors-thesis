@@ -101,8 +101,8 @@ class IRelief(BaseEstimator, TransformerMixin):
             f_h_vals = np.exp(-np.sum(dist_weights*h_vals, axis=1)/sig)
 
             # Compute vector of probabilities of misses being nearest misses.
-            pm_vec = f_m_vals/np.sum(f_m_vals)
-            ph_vec = f_h_vals/np.sum(f_h_vals)
+            pm_vec = f_m_vals/(np.sum(f_m_vals) + np.finfo(np.float).eps)
+            ph_vec = f_h_vals/(np.sum(f_h_vals) + np.finfo(np.float).eps)
 
             # Compute mean_m_values for each example
             mean_m[idx, :] = np.sum(pm_vec[np.newaxis].T * m_vals, 0)
@@ -137,7 +137,7 @@ class IRelief(BaseEstimator, TransformerMixin):
             d_vals = np.abs(data[idx, :] - data)
             f_m_vals = np.exp(-np.sum(dist_weights*m_vals, axis=1)/sig)
             f_d_vals = np.exp(-np.sum(dist_weights*d_vals, axis=1)/sig)
-            po_vals[idx] = np.sum(f_m_vals)/np.sum(f_d_vals)
+            po_vals[idx] = np.sum(f_m_vals)/(np.sum(f_d_vals) + np.finfo(np.float).eps)
         
         # Gamma values are probabilities of examples being inliers.
         return 1 - po_vals
@@ -197,7 +197,7 @@ class IRelief(BaseEstimator, TransformerMixin):
             nu = self._get_nu(gamma_vals, mean_m_vals, mean_h_vals, data.shape[0]) 
 
             # Update distance weights.
-            dist_weights_nxt = np.clip(nu, a_min=0, a_max=None)/np.linalg.norm(np.clip(nu, a_min=0, a_max=None))
+            dist_weights_nxt = np.clip(nu, a_min=0, a_max=None)/(np.linalg.norm(np.clip(nu, a_min=0, a_max=None)) + np.finfo(np.float).eps)
 
             # Check if convergence criterion satisfied. If not, continue with next iteration.
             if np.sum(np.abs(dist_weights_nxt - dist_weights)) < conv_condition:

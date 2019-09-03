@@ -55,8 +55,8 @@ comparePair = namedtuple('comparePair', 'algorithm1 algorithm2 scores')
 GROUP_IDX = "iterative"  # Results index
 
 algs = OrderedDict([
-    ('iterative_relief',IterativeRelief()),
-    ('I-RELIEF', IRelief())
+    ('iterative_relief',IterativeRelief(max_iter=30)),
+    ('I-RELIEF', IRelief(max_iter=30))
 ])
 
 # Initialize classifier.
@@ -108,11 +108,11 @@ for idx_alg1 in np.arange(num_algs-1):
 
             # Get scores for first algorithm (create pipeline).
             scores1_nxt = cross_val_score(clf_pipeline1, data, target, 
-                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1, n_jobs=-1)
 
             # Get scores for second algorithm (create pipeline).
             scores2_nxt = cross_val_score(clf_pipeline2, data, target, 
-                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
+                    cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1, n_jobs=-1)
 
             # Compute differences of scores.
             res_nxt = scores1_nxt - scores2_nxt

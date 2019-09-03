@@ -23,6 +23,8 @@ for results in glob.glob('*.p'):
         for results_idx in results_nxt.keys():
             nxt_pair = results_nxt[results_idx]
             names = (nxt_pair.algorithm1, nxt_pair.algorithm2)
+            import pdb
+            pdb.set_trace()
             scores = nxt_pair.scores
             msk = np.logical_not(np.apply_along_axis(lambda x: np.all(x == 0), 1, scores))
             scores = scores[msk, :]

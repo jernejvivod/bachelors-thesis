@@ -19,6 +19,7 @@ from algorithms.reliefmss import ReliefMSS
 from algorithms.turf import TuRF
 from algorithms.surfstar import SURFStar
 from algorithms.swrfStar import SWRFStar
+from algorithms.surf import SURF
 
 from julia import Julia
 jl = Julia(compiled_modules=False)
@@ -45,8 +46,8 @@ num_itrees = 5
 produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
 # Define RBAs to use.
-rbas = {'SWRFStar_medissim' : SWRFStar(learned_metric_func=produce_learned_metric_func),
-        'SWRFStar' : SWRFStar(),
+rbas = {'SURF_medissim' : SURF(learned_metric_func=produce_learned_metric_func),
+        'SURF' : SURF(),
         }
 
 # Initialize dictionary for storing results.
