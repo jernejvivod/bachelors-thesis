@@ -8,13 +8,12 @@ import bayesiantests as bt
 rope=0.01
 rho=1.0/10.0
 
-comp_pairs = (('relieff.mat', 'relieff.mat'), )
-alg_names = (('ReliefF', 'ReliefF'), )
+comp_pairs = (('reliefseq_raw_scores.mat', 'turf_raw_scores.mat'), )
+alg_names = (('ReliefSeq', 'TuRF'), )
+save_names = (('reliefseq', 'turf'),)
 
-import pdb
-pdb.set_trace()
 
-for file_names, names in zip(comp_pairs, alg_names):
+for save_names_nxt, file_names, names in zip(save_names, comp_pairs, alg_names):
 
     scores_l = sio.loadmat('./raw_scores/' + file_names[0])['data']
     scores_r = sio.loadmat('./raw_scores/' + file_names[1])['data']
@@ -28,7 +27,7 @@ for file_names, names in zip(comp_pairs, alg_names):
         f.write('{0}, {1}, {2}, {3}, {4}\n'.format(names[0], names[1], pleft, prope, pright))
 
     # Sample posterior and make simplex plot.
-    samples=bt.hierarchical_MC(scores, rope, rho, names=('MultiSURF', 'MultiSURF*'))
+    samples=bt.hierarchical_MC(scores, rope, rho, names=alg_names)
     fig = bt.plot_posterior(samples, names)
-    plt.savefig(names[0] + '_' + names[1] + '.png')
+    plt.savefig(save_names_nxt[0] + '_' + save_names_nxt[1] + '_final.png')
 

@@ -59,7 +59,7 @@ alg_vec = namedtuple('alg_vec', 'algorithm scores')
 # ])
 
 algs = OrderedDict([
-    ('swrfstar', SWRFStar()),
+    ('turf', TuRF(num_it=20))
 ])
 
 # Initialize classifier.

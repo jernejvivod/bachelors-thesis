@@ -58,15 +58,14 @@ alg_vec = namedtuple('alg_vec', 'algorithm scores')
 # ])
 
 algs = OrderedDict([
-    ('reliefmss', ReliefMSS(k=PARAM_K)),
-    ('reliefseq', ReliefSeq(k_max=12)),
+    ('relief', Relief()),
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final6'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final9'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))

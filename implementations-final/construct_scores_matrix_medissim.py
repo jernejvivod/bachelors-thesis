@@ -64,6 +64,9 @@ get_dist_func = jl.include(script_path[:script_path.rfind('/')] + "/algorithms/a
 num_itrees = 10
 produce_learned_metric_func = lambda x, _ : get_dist_func(num_itrees, x)
 
+import pdb
+pdb.set_trace()
+
 algs = OrderedDict([
     ('ReliefF', Relieff(k=PARAM_K)),
     ('ReliefF (mbd)', Relieff(k=PARAM_K, learned_metric_func=produce_learned_metric_func))

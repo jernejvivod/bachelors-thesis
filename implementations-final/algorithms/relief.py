@@ -31,6 +31,9 @@ class Relief(BaseEstimator, TransformerMixin):
         script_path = os.path.abspath(__file__)
         self._update_weights = jl.include(script_path[:script_path.rfind('/')] + "/julia-utils/update_weights_relief2.jl")
 
+        import pdb
+        pdb.set_trace()
+
 
     def fit(self, data, target):
 
@@ -151,4 +154,15 @@ class Relief(BaseEstimator, TransformerMixin):
 
         # Return feature rankings and weights.
         return rankdata(-weights, method='ordinal'), weights
+
+
+if __name__ == '__main__':
+    import scipy.io as sio
+    data = sio.loadmat('data.mat')['data']
+    target = np.ravel(sio.loadmat('target.mat')['target'])
+
+
+    relief = Relief()
+    relief.fit(data, target)
+    print(relief.weights)
 

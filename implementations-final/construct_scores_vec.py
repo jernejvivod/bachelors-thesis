@@ -8,7 +8,7 @@ import os
 import sys
 import pickle as pkl
 
-from algorithms.relief import Relief
+from algorithms.relief2 import Relief
 from algorithms.relieff import Relieff
 from algorithms.reliefmss import ReliefMSS
 from algorithms.reliefseq import ReliefSeq
@@ -58,15 +58,14 @@ alg_vec = namedtuple('alg_vec', 'algorithm scores')
 # ])
 
 algs = OrderedDict([
-    ('iterative_relief', IterativeRelief(max_iter=40)),
-    ('irelief', IRelief(max_iter=40)),
+    ('relief', Relief())
 ])
 
 # Initialize classifier.
 clf = KNeighborsClassifier(n_neighbors=3)
 
 # Set path to datasets folder.
-data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final6'
+data_dirs_path = os.path.dirname(os.path.realpath(__file__)) + '/datasets/' + 'final9'
 
 # Count datasets and allocate array for results.
 num_datasets = len(os.listdir(data_dirs_path))
@@ -106,7 +105,7 @@ for idx_alg in np.arange(num_algs):
 
         # Get scores for first algorithm (create pipeline).
         scores_nxt = cross_val_score(clf_pipeline, data, target, 
-                cv=RepeatedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1, n_jobs=7)
+                cv=RepeatedStratifiedKFold(n_splits=NUM_FOLDS_CV, n_repeats=NUM_RUNS_CV, random_state=1), verbose=1)
 
         ## Compute differences of scores.
         #res_nxt = scores1_nxt - scores2_nxt
